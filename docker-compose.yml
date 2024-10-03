@@ -1,0 +1,12 @@
+name: py-backapp
+
+services:
+  server:
+    build:
+      context: ./
+      dockerfile: ./server.Dockerfile
+    networks:
+      - backapp-net
+
+networks:
+  backapp-net:
