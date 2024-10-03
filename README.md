@@ -26,7 +26,10 @@ docker container run py-backapp:test
 docker container run -it py-backapp:test "/bin/bash"
 ```
 
-### Running app with docker-compose
+### Running with docker-compose
 ```shell
 docker-compose -f docker-compose.yml up
 ```
+\
+\
+![docker example 1](/screenshots/docker_1.png)
