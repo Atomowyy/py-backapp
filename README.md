@@ -10,6 +10,15 @@ Zadania:
 -	Testowanie systemu pod kątem niezawodności.
 -	Opracowanie dokumentacji technicznej.
 
+## Running Server
+```shell
+python server.py
+```
+
+## FIXME: Sending data from client to server
+```shell
+python backapp.py
+```
 
 ## Self-signed SSL certificate with `openssl`
 Generate a 2048-bit RSA private key:
