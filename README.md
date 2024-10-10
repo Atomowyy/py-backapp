@@ -11,6 +11,25 @@ Zadania:
 -	Opracowanie dokumentacji technicznej.
 
 
+## Self-signed SSL certificate with `openssl`
+Generate a 2048-bit RSA private key:
+```shell
+openssl genrsa -out ./certificates/py-backapp-server.key 2048
+```
+Generate a certificate signing request:
+```shell
+openssl req -new -key ./certificates/py-backapp-server.key -out ./certificates/py-backapp-server.csr
+```
+Generate self-signed certificate, valid for 365 days:
+```shell
+openssl x509 -req -days 365 -in ./certificates/py-backapp-server.csr -signkey ./certificates/py-backapp-server.key -out ./certificates/py-backapp-server.crt
+```
+Verify certificate and key:
+```shell
+openssl x509 -in ./certificates/py-backapp-server.crt -noout -text
+openssl rsa -in ./certificates/py-backapp-server.key -noout -text
+```
+
 ## Docker
 
 ### Building image
