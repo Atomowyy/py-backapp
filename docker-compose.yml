@@ -3,7 +3,7 @@ name: py-backapp
 services:
   server:
     build:
-      context: ./
+      context: ./server
       dockerfile: ./server.Dockerfile
     environment:
       PORT: 1234
