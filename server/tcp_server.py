@@ -55,7 +55,7 @@ class TcpServer:
         secure_socket = self.context.wrap_socket(client_socket, server_side=True)
 
         # print connection info
-        print(f'Accepted connection from {client_address[0]}:{client_address[1]}, TLS version: {secure_socket.version()}')
+        print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {secure_socket.version()}')
 
         try:
             # receive action from the client
