@@ -1,4 +1,4 @@
-from TcpServer import TcpServer
+from tcp_server import TcpServer
 import os
 
 PORT = int(os.getenv('PORT', 1234))

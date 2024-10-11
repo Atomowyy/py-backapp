@@ -1,7 +1,7 @@
 import socket
 import ssl
 
-from server.TcpServer import ServerActions
+from server.tcp_server import ServerActions
 
 # create client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
