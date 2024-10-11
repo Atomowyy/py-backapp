@@ -1,7 +1,10 @@
 # Python Backup App
 
+---
+
+## Projekt:
 Implementacja systemu do synchronizacji i backupu danych multimedialnych z wykorzystaniem protokołów sieciowych
-  
+
 Zadania:
 -	Badanie protokołów sieciowych do synchronizacji i backupu.
 -	Zaprojektowanie architektury systemu.
@@ -10,9 +13,9 @@ Zadania:
 -	Testowanie systemu pod kątem niezawodności.
 -	Opracowanie dokumentacji technicznej.
 
-## Running Server
+## Cloning repo
 ```shell
-python server.py
+git clone https://github.com/Atomowyy/py-backapp && cd py-backapp
 ```
 
 ## FIXME: Sending data from client to server
@@ -20,41 +23,49 @@ python server.py
 python backapp.py
 ```
 
+## Running Server
+> [!NOTE]
+> Change directory to `server`
+
+```shell
+python server.py
+```
+
 ## Self-signed SSL certificate with `openssl`
 Generate a 2048-bit RSA private key:
 ```shell
-openssl genrsa -out ./certificates/py-backapp-server.key 2048
+openssl genrsa -out ./server/certificates/py-backapp-server.key 2048
 ```
 Generate a certificate signing request:
 ```shell
-openssl req -new -key ./certificates/py-backapp-server.key -out ./certificates/py-backapp-server.csr
+openssl req -new -key ./server/certificates/py-backapp-server.key -out ./certificates/py-backapp-server.csr
 ```
 Generate self-signed certificate, valid for 365 days:
 ```shell
-openssl x509 -req -days 365 -in ./certificates/py-backapp-server.csr -signkey ./certificates/py-backapp-server.key -out ./certificates/py-backapp-server.crt
+openssl x509 -req -days 365 -in ./server/certificates/py-backapp-server.csr -signkey ./certificates/py-backapp-server.key -out ./certificates/py-backapp-server.crt
 ```
 Verify certificate and key:
 ```shell
-openssl x509 -in ./certificates/py-backapp-server.crt -noout -text
-openssl rsa -in ./certificates/py-backapp-server.key -noout -text
+openssl x509 -in ./server/certificates/py-backapp-server.crt -noout -text
+openssl rsa -in ./server/certificates/py-backapp-server.key -noout -text
 ```
 
 ## Docker
 
-### Building image
+### Building server image
 ```shell
-docker image build -f server.Dockerfile -t py-backapp:test .
+docker image build -f ./server/server.Dockerfile -t py-backapp:test .
 ```
-### Running container
+### Running server in a container
 ```shell
 docker container run py-backapp:test
 ```
-### Running bash in a container
+### Running bash in a server container
 ```shell
 docker container run -it py-backapp:test "/bin/bash"
 ```
 
-### Running with docker-compose
+### Running server with docker-compose
 ```shell
 docker-compose -f docker-compose.yml up
 ```
