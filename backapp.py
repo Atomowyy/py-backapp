@@ -1,6 +1,8 @@
 import socket
 import ssl
 
+from server.TcpServer import ServerActions
+
 # create client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -19,8 +21,11 @@ secure_socket = context.wrap_socket(client_socket, server_hostname='localhost')
 secure_socket.connect(('localhost', 1234))
 
 try:
-    message = 'Hello There 12345!'
-    secure_socket.sendall(message.encode())  # sendall - wait until all data is sent, else error
+    command = ServerActions.store('/dir1/dir2/file.txt')
+    secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+
+    data = 'Hello There 12345!'.encode()
+    secure_socket.sendall(data)
 
 except socket.error as err:
     print(f'Socket error: {err}')

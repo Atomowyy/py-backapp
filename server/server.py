@@ -17,6 +17,3 @@ try:
     server.run()
 except KeyboardInterrupt:  # catch keyboard interrupts, mainly Ctrl+C
     print("\nStopping server...")
-
-finally:
-    exit()

@@ -58,12 +58,17 @@ class TcpServer:
         print(f'Accepted connection from {client_address[0]}:{client_address[1]}, TLS version: {secure_socket.version()}')
 
         try:
-            # receive data
+            # receive action from the client
+            action, argument = secure_socket.recv(self.tcp_buffer_size).decode().split(ServerActions.spacer)
+            print(f'\tAction: {action}, argument: {argument}')
+
             while True:
-                data = secure_socket.recv(self.tcp_buffer_size)
+                # receive data
+                # TODO: determine what to do based on the received action
+                data = secure_socket.recv(self.tcp_buffer_size).decode()
 
                 if data:
-                    print(f'Received: {data.decode()}')
+                    print(f'\tReceived: {data}')
                 else:
                     break
 
@@ -72,3 +77,23 @@ class TcpServer:
 
         finally:
             secure_socket.close()
+
+
+class ServerActions:
+    spacer = '<;;;>'
+
+    @classmethod
+    def store(cls, data_path):
+        return ('STORE' + cls.spacer + data_path).encode()
+
+    @classmethod
+    def retrieve(cls, data_path):
+        raise NotImplementedError
+
+    @classmethod
+    def synchronize(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def list_data(cls):
+        raise NotImplementedError
