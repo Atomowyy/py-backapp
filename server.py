@@ -1,12 +1,13 @@
 from TcpServer import TcpServer
+import os
 
-PORT = 1234
-BACKLOG = 0  # number of allowed connections in the queue
-TCP_BUFFER_SIZE = 32_768  # buffer size in bytes, max = 65_536
+PORT = int(os.getenv('PORT', 1234))
+BACKLOG = int(os.getenv('BACKLOG', 0))
+TCP_BUFFER_SIZE = int(os.getenv('TCP_BUFFER_SIZE', 32_768))
 
-# FIXME: Use different certificates these are for development purposes only !!!
-CERTFILE = 'certificates/py-backapp-development.crt'
-KEYFILE = 'certificates/py-backapp-development.key'
+# FIXME: use your certificates, default certificates are for development purposes only and shouldn't be used
+CERTFILE = os.getenv('CERTFILE', 'certificates/py-backapp-development.crt')
+KEYFILE = os.getenv('KEYFILE', 'certificates/py-backapp-development.key')
 
 try:
     # initialize server
@@ -16,3 +17,6 @@ try:
     server.run()
 except KeyboardInterrupt:  # catch keyboard interrupts, mainly Ctrl+C
     print("\nStopping server...")
+
+finally:
+    exit()
