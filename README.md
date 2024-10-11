@@ -1,7 +1,5 @@
 # Python Backup App
 
----
-
 ## Projekt:
 Implementacja systemu do synchronizacji i backupu danych multimedialnych z wykorzystaniem protokołów sieciowych
 
