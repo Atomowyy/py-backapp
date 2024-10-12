@@ -5,6 +5,8 @@ import os
 
 
 class TcpServer:
+    data_dir = os.path.abspath(os.path.abspath('./data'))
+
     @classmethod
     def get_host_ip(cls):
         return socket.gethostbyname(socket.gethostname())
@@ -46,11 +48,11 @@ class TcpServer:
         while True:
             try:
                 client_socket, client_address = self.server_socket.accept()
-                self.handle_connection(client_socket, client_address)
+                self._handle_connection(client_socket, client_address)
             except socket.error as err:
                 print(f'Socket error: {err}')
 
-    def handle_connection(self, client_socket, client_address):
+    def _handle_connection(self, client_socket, client_address):
         # secure client socket with ssl
         secure_socket = self.context.wrap_socket(client_socket, server_side=True)
 
@@ -64,27 +66,58 @@ class TcpServer:
 
             while True:
                 # receive data
-                # TODO: determine what to do based on the received action
-                data = secure_socket.recv(self.tcp_buffer_size).decode()
-
-                if data:
-                    print(f'\tReceived: {data}')
-                else:
+                data = secure_socket.recv(self.tcp_buffer_size)
+                if not data:
                     break
 
+                # TODO: determine what to do based on the received action
+                response = 'Action Accepted'
+                match action:
+                    case 'STORE FILE':
+                        if '..' in argument:  # moving outside data_dir
+                            response = 'Wrong File Path'
+                        self._handle_store(argument, data)
+                    case _:
+                        response = 'Action Denied!'
+
+                secure_socket.sendall(response.encode())
+                print('\t' + response)
+
         except socket.error as err:
-            print(f'Socket error: {err}')
+            print(f'\tSocket error: {err}')
 
         finally:
             secure_socket.close()
+
+    @classmethod
+    def _handle_store(cls, save_path, data, directory=False):
+        # add '/' to the beginning if necessary
+        if save_path[0] != '/':
+            save_path = '/' + save_path
+
+        # create directories if they don't exist
+        os.makedirs(cls.data_dir + save_path[:save_path.rindex('/')], exist_ok=True)
+
+        print(f'\tSaving data to {save_path}')
+        if not directory:
+            with open(cls.data_dir + save_path, 'wb') as file:
+                file.write(data)
+                return 0
+
+        # TODO: implement dir saving
+        raise NotImplementedError
 
 
 class ServerActions:
     spacer = '<;;;>'
 
     @classmethod
-    def store(cls, data_path):
-        return ('STORE' + cls.spacer + data_path).encode()
+    def store_file(cls, file_path):
+        return ('STORE FILE' + cls.spacer + file_path).encode()
+
+    @classmethod
+    def store_dir(cls, dir_path):
+        return ('STORE DIR' + cls.spacer + dir_path).encode()
 
     @classmethod
     def retrieve(cls, data_path):
