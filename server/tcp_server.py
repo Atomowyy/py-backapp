@@ -124,6 +124,10 @@ class ServerActions:
         raise NotImplementedError
 
     @classmethod
+    def delete(cls, data_path):
+        raise NotImplementedError
+
+    @classmethod
     def synchronize(cls):
         raise NotImplementedError
 
