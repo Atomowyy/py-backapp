@@ -2,16 +2,32 @@ import socket
 import ssl
 
 import os
+import shutil
+
+import zipfile
 
 
 class TcpServer:
-    data_dir = os.path.abspath(os.path.abspath('./data'))
+    project_path = os.path.abspath('./')
+    data_dir = project_path + '/data'
+    tmp_dir = project_path + '/tmp'
+    tmp_file_path = tmp_dir + '/tmp_file'
 
     @classmethod
     def get_host_ip(cls):
         return socket.gethostbyname(socket.gethostname())
 
     def __init__(self, certfile, keyfile, port=1234, backlog=0, tcp_buffer_size=32_768):
+        # create required directories if not present
+        if not os.path.exists(self.tmp_dir):
+            os.makedirs(self.tmp_dir)
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
+
+        # remove tmp file if it exists
+        if os.path.exists(self.tmp_file_path):
+            os.remove(self.tmp_file_path)
+
         self.port = port
         self.backlog = backlog
         self.tcp_buffer_size = tcp_buffer_size
@@ -64,24 +80,40 @@ class TcpServer:
             action, argument = secure_socket.recv(self.tcp_buffer_size).decode().split(ServerActions.spacer)
             print(f'\tAction: {action}, argument: {argument}')
 
+            if '..' in argument:  # moving outside data_dir
+                response = 'Invalid Path'
+                secure_socket.sendall(response.encode())
+                print('\t' + response)
+                return
+
             while True:
                 # receive data
                 data = secure_socket.recv(self.tcp_buffer_size)
-                if not data:
+                if not data or data == ServerActions.end_transfer:
                     break
 
-                # TODO: determine what to do based on the received action
-                response = 'Action Accepted'
-                match action:
-                    case 'STORE FILE':
-                        if '..' in argument:  # moving outside data_dir
-                            response = 'Wrong File Path'
-                        self._handle_store(argument, data)
-                    case _:
-                        response = 'Action Denied!'
+                # store data in tmp file
+                with open(self.tmp_file_path, 'ab') as tmp_file:
+                    tmp_file.write(data)
 
-                secure_socket.sendall(response.encode())
-                print('\t' + response)
+            # TODO: determine what to do based on the received action
+            response = 'Action Accepted'
+            match action:
+                case 'STORE FILE':
+                    self._handle_store(argument, data)
+                case 'STORE DIR':
+                    result = self._handle_store(argument, data, True)
+                    if result == -1:
+                        response = 'Invalid Data'
+                case _:
+                    response = 'Action Denied!'
+
+            # remove tmp file if it exists
+            if os.path.exists(self.tmp_file_path):
+                os.remove(self.tmp_file_path)
+
+            secure_socket.sendall(response.encode())
+            print('\t' + response)
 
         except socket.error as err:
             print(f'\tSocket error: {err}')
@@ -100,16 +132,21 @@ class TcpServer:
 
         print(f'\tSaving data to {save_path}')
         if not directory:
-            with open(cls.data_dir + save_path, 'wb') as file:
-                file.write(data)
-                return 0
+            shutil.move(cls.tmp_file_path, cls.data_dir + save_path)
+            return 0
 
-        # TODO: implement dir saving
-        raise NotImplementedError
+        # directories are send as compressed files
+        if not zipfile.is_zipfile(cls.tmp_file_path):
+            return -1
+        with zipfile.ZipFile(cls.tmp_file_path, 'r') as zip_ref:
+            zip_ref.extractall(cls.data_dir + save_path)
+
+        return 0
 
 
 class ServerActions:
     spacer = '<;;;>'
+    end_transfer = '<;;EOT;;>'.encode()
 
     @classmethod
     def store_file(cls, file_path):

@@ -3,6 +3,9 @@ import ssl
 
 from server.tcp_server import ServerActions
 
+import os
+import shutil
+
 # create client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -20,19 +23,34 @@ secure_socket = context.wrap_socket(client_socket, server_hostname='localhost')
 # connect to server
 secure_socket.connect(('localhost', 1234))
 
-try:
-    command = ServerActions.store_file('a/b/c/d/file.txt')
-    secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#####################################
+print('\nTesting file transfer')
+command = ServerActions.store_file('test/test2/file.txt')
+secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
 
-    data = 'Hello There 12345!'.encode()
-    secure_socket.sendall(data)
+data = 'Hello There 12345!'.encode()
+secure_socket.sendall(data)
+secure_socket.sendall(ServerActions.end_transfer)
 
-    # get server response
-    response = secure_socket.recv(1024)
-    print(response.decode())
+# get server response
+response = secure_socket.recv(1024)
+print(response.decode())
 
-except socket.error as err:
-    print(f'Socket error: {err}')
+#####################################
+# print('\nTesting folder transfer')
+# command = ServerActions.store_dir('test/folder')
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#
+# zip_path = shutil.make_archive('test', 'zip', 'screenshots')  # zip screenshots folder
+# with open(zip_path, 'rb') as f:
+#     data = f.read()
+#
+# os.remove(zip_path)
+#
+# secure_socket.sendall(data)
+# secure_socket.sendall(ServerActions.end_transfer)
+#
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())
 
-finally:
-    secure_socket.close()
