@@ -1,5 +1,6 @@
 import socket
 import ssl
+import select
 
 import os
 import shutil
@@ -49,6 +50,9 @@ class TcpServer:
         # bind socket to all available ipv4 interfaces and PORT
         self.server_socket.bind(('', self.port))
 
+        # set server to non-blocking mode
+        self.server_socket.setblocking(False)
+
         # start listening and set backlog
         self.server_socket.listen(self.backlog)
 
@@ -61,11 +65,19 @@ class TcpServer:
         # waiting for connections
         print(f'Started py-backapp server on {self.get_host_ip()}:{self.port}')
         while True:
-            try:
-                client_socket, client_address = self.server_socket.accept()
-                self._handle_connection(client_socket, client_address)
-            except socket.error as err:
-                print(f'Socket error: {err}')
+            # wait for incoming connections with 1s timeout
+            readable, _, _ = select.select([self.server_socket], [], [], 1)
+
+            # for each readable socket
+            for s in readable:
+                try:
+                    client_socket, client_address = s.accept()
+                    self._handle_connection(client_socket, client_address)
+                except socket.error as err:
+                    print(f'\tSocket error: {err}')
+
+    def close_server_socket(self):
+        self.server_socket.close()
 
     def _handle_connection(self, client_socket, client_address):
         # secure client socket with ssl

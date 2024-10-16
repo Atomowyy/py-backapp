@@ -9,11 +9,18 @@ TCP_BUFFER_SIZE = int(os.getenv('TCP_BUFFER_SIZE', 32_768))
 CERTFILE = os.getenv('CERTFILE', 'certificates/py-backapp-development.crt')
 KEYFILE = os.getenv('KEYFILE', 'certificates/py-backapp-development.key')
 
+# initialize server variable
+server = None
+
 try:
     # initialize server
     server = TcpServer(CERTFILE, KEYFILE, PORT, BACKLOG, TCP_BUFFER_SIZE)
 
     # run the server
     server.run()
-except KeyboardInterrupt:  # catch keyboard interrupts, mainly Ctrl+C
+except KeyboardInterrupt:  # SIGINT, catch keyboard interrupts, mainly Ctrl+C
     print("\nStopping server...")
+
+finally:
+    if server is not None:
+        server.close_server_socket()
