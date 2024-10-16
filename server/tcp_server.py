@@ -24,9 +24,7 @@ class TcpServer:
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
 
-        # remove tmp file if it exists
-        if os.path.exists(self.tmp_file_path):
-            os.remove(self.tmp_file_path)
+        self._remove_tmp_file()
 
         self.port = port
         self.backlog = backlog
@@ -41,6 +39,7 @@ class TcpServer:
 
         self.context = None
         self.server_socket = None
+        self.secure_socket = None
 
     def run(self):
         # create server socket
@@ -70,59 +69,73 @@ class TcpServer:
 
     def _handle_connection(self, client_socket, client_address):
         # secure client socket with ssl
-        secure_socket = self.context.wrap_socket(client_socket, server_side=True)
-
+        self.secure_socket = self.context.wrap_socket(client_socket, server_side=True)
         # print connection info
-        print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {secure_socket.version()}')
+        print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {self.secure_socket.version()}')
 
         try:
             # receive action from the client
-            action, argument = secure_socket.recv(self.tcp_buffer_size).decode().split(ServerActions.spacer)
+            action, argument = self.secure_socket.recv(self.tcp_buffer_size).decode().split(ServerActions.spacer)
             print(f'\tAction: {action}, argument: {argument}')
 
             if '..' in argument:  # moving outside data_dir
-                response = 'Invalid Path'
-                secure_socket.sendall(response.encode())
-                print('\t' + response)
+                self._send_response('Invalid Path')
                 return
 
-            while True:
-                # receive data
-                data = secure_socket.recv(self.tcp_buffer_size)
-                if not data or data == ServerActions.end_transfer:
-                    break
+            # save data from client to tmp file
+            self._save_recv_to_tmp_file()
 
-                # store data in tmp file
-                with open(self.tmp_file_path, 'ab') as tmp_file:
-                    tmp_file.write(data)
-
-            # TODO: determine what to do based on the received action
-            response = 'Action Accepted'
-            match action:
-                case 'STORE FILE':
-                    self._handle_store(argument, data)
-                case 'STORE DIR':
-                    result = self._handle_store(argument, data, True)
-                    if result == -1:
-                        response = 'Invalid Data'
-                case _:
-                    response = 'Action Denied!'
+            # handle server action and store response for the client
+            response = self._handle_server_action(action, argument)
 
             # remove tmp file if it exists
-            if os.path.exists(self.tmp_file_path):
-                os.remove(self.tmp_file_path)
+            self._remove_tmp_file()
 
-            secure_socket.sendall(response.encode())
-            print('\t' + response)
+            # send response to the client
+            self._send_response(response)
 
         except socket.error as err:
             print(f'\tSocket error: {err}')
 
         finally:
-            secure_socket.close()
+            self.secure_socket.close()
+
+    def _send_response(self, response) -> None:
+        self.secure_socket.sendall(response.encode())
+        print('\t' + response)
+
+    def _save_recv_to_tmp_file(self) -> None:
+        while True:
+            # receive data
+            data = self.secure_socket.recv(self.tcp_buffer_size)
+            if not data or data == ServerActions.end_transfer:
+                break
+
+            # store data in tmp file
+            with open(self.tmp_file_path, 'ab') as tmp_file:
+                tmp_file.write(data)
+
+    def _handle_server_action(self, action, argument) -> str:
+        # TODO: determine what to do based on the received action
+        response = 'Action Accepted'
+        match action:
+            case 'STORE FILE':
+                self._handle_store(argument)
+            case 'STORE DIR':
+                result = self._handle_store(argument, True)
+                if result == -1:
+                    response = 'Invalid Data'
+            case _:
+                response = 'Action Denied!'
+
+        return response
+
+    def _remove_tmp_file(self) -> None:
+        if os.path.exists(self.tmp_file_path):
+            os.remove(self.tmp_file_path)
 
     @classmethod
-    def _handle_store(cls, save_path, data, directory=False):
+    def _handle_store(cls, save_path, directory=False) -> int:
         # add '/' to the beginning if necessary
         if save_path[0] != '/':
             save_path = '/' + save_path
