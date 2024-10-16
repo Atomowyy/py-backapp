@@ -132,13 +132,17 @@ class TcpServer:
         response = 'Action Accepted'
         match action:
             case 'STORE FILE':
-                self._handle_store(argument)
+                self._handle_storing(argument)
             case 'STORE DIR':
-                result = self._handle_store(argument, True)
+                result = self._handle_storing(argument, True)
                 if result == -1:
                     response = 'Invalid Data'
+            case 'DELETE DATA':
+                result = self._handle_deleting(argument)
+                if result == -1:
+                    response = 'Provided path does not exist'
             case 'LIST DATA':
-                result = self._handle_list(argument)
+                result = self._handle_listing(argument)
                 if result == -1:
                     response = 'Invalid Path'
             case _:
@@ -151,7 +155,7 @@ class TcpServer:
             os.remove(self.tmp_file_path)
 
     @classmethod
-    def _handle_store(cls, save_path: str, directory:bool=False) -> int:
+    def _handle_storing(cls, save_path: str, directory:bool=False) -> int:
         # add '/' to the beginning if necessary
         if save_path[0] != '/':
             save_path = '/' + save_path
@@ -172,7 +176,21 @@ class TcpServer:
 
         return 0
 
-    def _handle_list(self, path: str) -> int:
+    def _handle_deleting(self, path: str) -> int:
+        print(f'\tDeleting data in {path}')
+        full_path = self.data_dir + path
+
+        if not os.path.exists(full_path):
+            return -1
+
+        if os.path.isfile(full_path):
+            os.remove(full_path)
+        elif os.path.isdir(full_path):
+            shutil.rmtree(full_path)
+
+        return 0
+
+    def _handle_listing(self, path: str) -> int:
         print(f'\tListing data in {path}')
         full_path = self.data_dir + path
 
@@ -201,8 +219,8 @@ class ServerActions:
         raise NotImplementedError
 
     @classmethod
-    def delete(cls, data_path):
-        raise NotImplementedError
+    def delete(cls, path):
+        return ('DELETE DATA' + cls.spacer + path).encode()
 
     @classmethod
     def list_data(cls, path: str) -> bytes:
