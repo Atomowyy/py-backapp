@@ -112,9 +112,9 @@ class TcpServer:
         finally:
             self.secure_socket.close()
 
-    def _send_response(self, response) -> None:
+    def _send_response(self, response: str, print_response: bool=True) -> None:
         self.secure_socket.sendall(response.encode())
-        print('\t' + response)
+        if print_response: print('\t' + response)
 
     def _save_recv_to_tmp_file(self) -> None:
         while True:
@@ -127,7 +127,7 @@ class TcpServer:
             with open(self.tmp_file_path, 'ab') as tmp_file:
                 tmp_file.write(data)
 
-    def _handle_server_action(self, action, argument) -> str:
+    def _handle_server_action(self, action: str, argument: str) -> str:
         # TODO: determine what to do based on the received action
         response = 'Action Accepted'
         match action:
@@ -137,6 +137,10 @@ class TcpServer:
                 result = self._handle_store(argument, True)
                 if result == -1:
                     response = 'Invalid Data'
+            case 'LIST DATA':
+                result = self._handle_list(argument)
+                if result == -1:
+                    response = 'Invalid Path'
             case _:
                 response = 'Action Denied!'
 
@@ -147,7 +151,7 @@ class TcpServer:
             os.remove(self.tmp_file_path)
 
     @classmethod
-    def _handle_store(cls, save_path, directory=False) -> int:
+    def _handle_store(cls, save_path: str, directory:bool=False) -> int:
         # add '/' to the beginning if necessary
         if save_path[0] != '/':
             save_path = '/' + save_path
@@ -168,17 +172,28 @@ class TcpServer:
 
         return 0
 
+    def _handle_list(self, path: str) -> int:
+        print(f'\tListing data in {path}')
+        full_path = self.data_dir + path
+
+        if not os.path.exists(full_path):
+            return -1
+
+        listing = ' '.join(os.listdir(full_path))
+        self._send_response(listing, False)
+        return 0
+
 
 class ServerActions:
     spacer = '<;;;>'
     end_transfer = '<;;EOT;;>'.encode()
 
     @classmethod
-    def store_file(cls, file_path):
+    def store_file(cls, file_path: str) -> bytes:
         return ('STORE FILE' + cls.spacer + file_path).encode()
 
     @classmethod
-    def store_dir(cls, dir_path):
+    def store_dir(cls, dir_path: str) -> bytes:
         return ('STORE DIR' + cls.spacer + dir_path).encode()
 
     @classmethod
@@ -190,9 +205,5 @@ class ServerActions:
         raise NotImplementedError
 
     @classmethod
-    def synchronize(cls):
-        raise NotImplementedError
-
-    @classmethod
-    def list_data(cls):
-        raise NotImplementedError
+    def list_data(cls, path: str) -> bytes:
+        return ('LIST DATA' + cls.spacer + path).encode()

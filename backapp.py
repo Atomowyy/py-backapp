@@ -23,18 +23,19 @@ secure_socket = context.wrap_socket(client_socket, server_hostname='localhost')
 # connect to server
 secure_socket.connect(('localhost', 1234))
 
+
 #####################################
-print('\nTesting file transfer')
-command = ServerActions.store_file('test/test2/file.txt')
-secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
-
-data = 'Hello There 12345!'.encode()
-secure_socket.sendall(data)
-secure_socket.sendall(ServerActions.end_transfer)
-
-# get server response
-response = secure_socket.recv(1024)
-print(response.decode())
+# print('\nTesting file transfer')
+# command = ServerActions.store_file('test/test2/file.txt')
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#
+# data = 'Hello There 12345!'.encode()
+# secure_socket.sendall(data)
+# secure_socket.sendall(ServerActions.end_transfer)
+#
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())
 
 #####################################
 # print('\nTesting folder transfer')
@@ -54,3 +55,15 @@ print(response.decode())
 # response = secure_socket.recv(1024)
 # print(response.decode())
 
+#####################################
+print('\nTesting listing')
+command = ServerActions.list_data('/test/test2')
+secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+secure_socket.sendall(ServerActions.end_transfer)
+
+# get server response - listing of files
+ls = secure_socket.recv(1024)
+print(ls.decode())
+# get server response
+response = secure_socket.recv(1024)
+print(response.decode())
