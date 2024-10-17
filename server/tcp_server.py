@@ -112,9 +112,10 @@ class TcpServer:
         finally:
             self.secure_socket.close()
 
-    def _send_response(self, response: str, print_response: bool=True) -> None:
+    def _send_response(self, response: str, print_response: bool = True) -> None:
         self.secure_socket.sendall(response.encode())
-        if print_response: print('\t' + response)
+        if print_response:
+            print('\t' + response)
 
     def _save_recv_to_tmp_file(self) -> None:
         while True:
@@ -155,7 +156,7 @@ class TcpServer:
             os.remove(self.tmp_file_path)
 
     @classmethod
-    def _handle_storing(cls, save_path: str, directory:bool=False) -> int:
+    def _handle_storing(cls, save_path: str, directory: bool = False) -> int:
         # add '/' to the beginning if necessary
         if save_path[0] != '/':
             save_path = '/' + save_path
@@ -215,11 +216,11 @@ class ServerActions:
         return ('STORE DIR' + cls.spacer + dir_path).encode()
 
     @classmethod
-    def retrieve(cls, data_path):
+    def get_data(cls, data_path):
         raise NotImplementedError
 
     @classmethod
-    def delete(cls, path):
+    def delete(cls, path: str) -> bytes:
         return ('DELETE DATA' + cls.spacer + path).encode()
 
     @classmethod
