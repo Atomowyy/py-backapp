@@ -13,6 +13,7 @@ class TcpServer:
     data_dir = project_path + '/data'
     tmp_dir = project_path + '/tmp'
     tmp_file_path = tmp_dir + '/tmp_file'
+    tmp_zip_path = tmp_dir + '/zip_archive'
 
     @classmethod
     def get_host_ip(cls):
@@ -117,6 +118,9 @@ class TcpServer:
         if print_response:
             print('\t' + response)
 
+    def _end_transfer(self):
+        self.secure_socket.sendall(ServerActions.end_transfer)
+
     def _save_recv_to_tmp_file(self) -> None:
         while True:
             # receive data
@@ -138,6 +142,14 @@ class TcpServer:
                 result = self._handle_storing(argument, True)
                 if result == -1:
                     response = 'Invalid Data'
+            case 'GET FILE':
+                result = self._handle_file_retrieving(argument)
+                if result == -1:
+                    response = 'Invalid Path'
+            case 'GET DIR':
+                result = self._handle_dir_retrieving(argument)
+                if result == -1:
+                    response = 'Invalid Path'
             case 'DELETE DATA':
                 result = self._handle_deleting(argument)
                 if result == -1:
@@ -177,6 +189,39 @@ class TcpServer:
 
         return 0
 
+    def _send_file(self, path: str) -> None:
+        with open(path, 'rb') as file:
+            while True:
+                data_chunk = file.read(self.tcp_buffer_size)
+                if not data_chunk:
+                    break
+                self.secure_socket.sendall(data_chunk)
+
+        self._end_transfer()
+
+    def _handle_file_retrieving(self, file_path: str) -> int:
+        print(f'\tSending file {file_path}')
+        full_path = self.data_dir + file_path
+
+        if not os.path.isfile(full_path):
+            return -1
+
+        self._send_file(full_path)
+        return 0
+
+    def _handle_dir_retrieving(self, dir_path):
+        print(f'\tSending dir {dir_path}')
+        full_path = self.data_dir + dir_path
+
+        if not os.path.isdir(full_path):
+            return -1
+
+        # zip the directory
+        zip_path = shutil.make_archive(self.tmp_zip_path, 'zip', full_path)
+
+        self._send_file(zip_path)
+        return 0
+
     def _handle_deleting(self, path: str) -> int:
         print(f'\tDeleting data in {path}')
         full_path = self.data_dir + path
@@ -198,7 +243,7 @@ class TcpServer:
         if not os.path.exists(full_path):
             return -1
 
-        listing = ' '.join(os.listdir(full_path))
+        listing = '  '.join(os.listdir(full_path))
         self._send_response(listing, False)
         return 0
 
@@ -216,8 +261,12 @@ class ServerActions:
         return ('STORE DIR' + cls.spacer + dir_path).encode()
 
     @classmethod
-    def get_data(cls, data_path):
-        raise NotImplementedError
+    def get_file(cls, file_path: str) -> bytes:
+        return ('GET FILE' + cls.spacer + file_path).encode()
+
+    @classmethod
+    def get_dir(cls, dir_path: str) -> bytes:
+        return ('GET DIR' + cls.spacer + dir_path).encode()
 
     @classmethod
     def delete(cls, path: str) -> bytes:
