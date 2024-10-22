@@ -6,7 +6,7 @@ import os
 import shutil
 from datetime import datetime
 
-import zipfile
+import tarfile
 
 
 class TcpServer:
@@ -14,7 +14,7 @@ class TcpServer:
     data_dir = project_path + '/data'
     tmp_dir = project_path + '/tmp'
     tmp_file_path = tmp_dir + '/tmp_file'
-    tmp_zip_path = tmp_dir + '/zip_archive'
+    tmp_tar_path = tmp_dir + '/tar_archive.tar'
 
     @classmethod
     def get_host_ip(cls):
@@ -187,11 +187,11 @@ class TcpServer:
             shutil.move(cls.tmp_file_path, cls.data_dir + save_path)
             return 0
 
-        # directories are send as compressed files
-        if not zipfile.is_zipfile(cls.tmp_file_path):
+        # directories are send as tar compressed archives
+        if not tarfile.is_tarfile(cls.tmp_file_path):
             return -1
-        with zipfile.ZipFile(cls.tmp_file_path, 'r') as zip_ref:
-            zip_ref.extractall(cls.data_dir + save_path)
+        with tarfile.open(cls.tmp_file_path, 'r') as tar_ref:
+            tar_ref.extractall(cls.data_dir + save_path)
 
         return 0
 
@@ -222,10 +222,11 @@ class TcpServer:
         if not os.path.isdir(full_path):
             return -1
 
-        # zip the directory
-        zip_path = shutil.make_archive(self.tmp_zip_path, 'zip', full_path)
+        # create a tar archive of the direcotry
+        with tarfile.open(self.tmp_tar_path, 'w') as tar_ref:
+            tar_ref.add(full_path, arcname=os.path.basename(full_path))
 
-        self._send_file(zip_path)
+        self._send_file(self.tmp_tar_path)
         return 0
 
     def _handle_getting_modification_date(self, path):
