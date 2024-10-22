@@ -7,6 +7,7 @@ import shutil
 from datetime import datetime
 
 import tarfile
+import struct
 
 
 class TcpServer:
@@ -139,7 +140,9 @@ class TcpServer:
         response = 'Action Accepted'
         match action:
             case 'STORE FILE':
-                self._handle_storing(argument)
+                # get modification date
+                modification_date = struct.unpack('d', self.secure_socket.recv(self.tcp_buffer_size))[0]
+                self._handle_storing(argument, False, modification_date)
             case 'STORE DIR':
                 result = self._handle_storing(argument, True)
                 if result == -1:
@@ -174,7 +177,7 @@ class TcpServer:
             os.remove(self.tmp_file_path)
 
     @classmethod
-    def _handle_storing(cls, save_path: str, directory: bool = False) -> int:
+    def _handle_storing(cls, save_path: str, directory: bool, modification_time: float = None) -> int:
         # add '/' to the beginning if necessary
         if save_path[0] != '/':
             save_path = '/' + save_path
@@ -185,6 +188,8 @@ class TcpServer:
         print(f'\tSaving data to {save_path}')
         if not directory:
             shutil.move(cls.tmp_file_path, cls.data_dir + save_path)
+            if modification_time is not None:
+                os.utime(cls.data_dir + save_path, (modification_time, modification_time))
             return 0
 
         # directories are send as tar compressed archives
@@ -213,6 +218,9 @@ class TcpServer:
             return -1
 
         self._send_file(full_path)
+
+        # send file modification date
+        self.secure_socket.sendall(struct.pack('d', os.path.getmtime(full_path)))
         return 0
 
     def _handle_dir_retrieving(self, dir_path):

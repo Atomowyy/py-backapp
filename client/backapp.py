@@ -2,11 +2,11 @@ import socket
 import ssl
 
 import tarfile
+import struct
 
 from server.tcp_server import ServerActions
 
 import os
-import shutil
 from datetime import datetime
 
 # create client socket
@@ -28,17 +28,20 @@ secure_socket.connect(('localhost', 1234))
 
 
 #####################################
-# print('\nTesting file transfer')
-# command = ServerActions.store_file('test/test2/file.txt')
-# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
-#
-# data = 'Hello There 12345!'.encode()
-# secure_socket.sendall(data)
-# secure_socket.sendall(ServerActions.end_transfer)
-#
-# # get server response
-# response = secure_socket.recv(1024)
-# print(response.decode())
+print('\nTesting file transfer')
+command = ServerActions.store_file('test/test2/file.txt')
+secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+
+data = 'Hello There 12345!'.encode()
+secure_socket.sendall(data)
+secure_socket.sendall(ServerActions.end_transfer)
+
+# send file modification time
+secure_socket.sendall(struct.pack('d', os.path.getmtime('../README.md')))
+
+# get server response
+response = secure_socket.recv(1024)
+print(response.decode())
 
 #####################################
 # print('\nTesting folder transfer')
@@ -76,7 +79,7 @@ secure_socket.connect(('localhost', 1234))
 
 #####################################
 # print('\nTesting getting modification date')
-# command = ServerActions.get_modification_date('/test/folder/docker_1.png')
+# command = ServerActions.get_modification_date('/test/folder/screenshots/docker_1.png')
 # secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
 # secure_socket.sendall(ServerActions.end_transfer)
 #
@@ -85,7 +88,8 @@ secure_socket.connect(('localhost', 1234))
 #
 # # get modification date
 # response = secure_socket.recv(1024)
-# print(f'Modification date on server: {response.decode()}')
+# modification_date = datetime.fromisoformat(response.decode())
+# print(f'Modification date on server: {modification_date}')
 #
 # # get server response
 # response = secure_socket.recv(1024)
@@ -120,6 +124,11 @@ secure_socket.connect(('localhost', 1234))
 #     # store data in tmp file
 #     with open(file, 'ab') as tmp_file:
 #         tmp_file.write(data)
+#
+# # get file modification time
+# modification_time = struct.unpack('d', secure_socket.recv(1024))[0]
+# # set file modification file
+# os.utime(file, (modification_time, modification_time))
 #
 # # get server response
 # response = secure_socket.recv(1024)
