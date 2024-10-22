@@ -4,6 +4,7 @@ import select
 
 import os
 import shutil
+from datetime import datetime
 
 import zipfile
 
@@ -114,9 +115,10 @@ class TcpServer:
             self.secure_socket.close()
 
     def _send_response(self, response: str, print_response: bool = True) -> None:
-        self.secure_socket.sendall(response.encode())
+        response_str = str(response)
+        self.secure_socket.sendall(response_str.encode())
         if print_response:
-            print('\t' + response)
+            print('\t' + response_str)
 
     def _end_transfer(self):
         self.secure_socket.sendall(ServerActions.end_transfer)
@@ -148,6 +150,10 @@ class TcpServer:
                     response = 'Invalid Path'
             case 'GET DIR':
                 result = self._handle_dir_retrieving(argument)
+                if result == -1:
+                    response = 'Invalid Path'
+            case 'GET MODIFICATION DATE':
+                result = self._handle_getting_modification_date(argument)
                 if result == -1:
                     response = 'Invalid Path'
             case 'DELETE DATA':
@@ -222,6 +228,24 @@ class TcpServer:
         self._send_file(zip_path)
         return 0
 
+    def _handle_getting_modification_date(self, path):
+        print(f'\tSending modification date of {path}')
+        full_path = self.data_dir + path
+
+        if not os.path.exists(full_path):
+            return -1
+
+        # get the modification time timestamp
+        modification_time = os.path.getmtime(full_path)
+
+        # convert it to string & human-readable format
+        modification_date = str(datetime.fromtimestamp(modification_time))
+        print(f'\tModification date is {modification_date}')
+
+        self._send_response(modification_date, False)
+
+        return 0
+
     def _handle_deleting(self, path: str) -> int:
         print(f'\tDeleting data in {path}')
         full_path = self.data_dir + path
@@ -267,6 +291,10 @@ class ServerActions:
     @classmethod
     def get_dir(cls, dir_path: str) -> bytes:
         return ('GET DIR' + cls.spacer + dir_path).encode()
+
+    @classmethod
+    def get_modification_date(cls, path: str) -> bytes:
+        return ('GET MODIFICATION DATE' + cls.spacer + path).encode()
 
     @classmethod
     def delete(cls, path: str) -> bytes:

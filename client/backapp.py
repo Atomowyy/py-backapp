@@ -7,6 +7,7 @@ from server.tcp_server import ServerActions
 
 import os
 import shutil
+from datetime import datetime
 
 # create client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,6 +67,23 @@ print(response.decode())
 # # get server response - listing of files
 # ls = secure_socket.recv(1024)
 # print(ls.decode())
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())
+
+#####################################
+# print('\nTesting getting modification date')
+# command = ServerActions.get_modification_date('/test/test2/file.txt')
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+# secure_socket.sendall(ServerActions.end_transfer)
+#
+# # print local modification date
+# print(f'modification date: {datetime.fromtimestamp(os.path.getmtime("../server/data/test/test2/file.txt"))}')
+#
+# # get modification date
+# response = secure_socket.recv(1024)
+# print(f'Modification date on server: {response.decode()}')
+#
 # # get server response
 # response = secure_socket.recv(1024)
 # print(response.decode())
