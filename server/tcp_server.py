@@ -7,28 +7,20 @@ import shutil
 from datetime import datetime
 
 import tarfile
-import struct
 
 
 class TcpServer:
     project_path = os.path.abspath('./')
     data_dir = project_path + '/data'
-    tmp_dir = project_path + '/tmp'
-    tmp_file_path = tmp_dir + '/tmp_file'
-    tmp_tar_path = tmp_dir + '/tar_archive.tar'
 
     @classmethod
     def get_host_ip(cls):
         return socket.gethostbyname(socket.gethostname())
 
     def __init__(self, certfile, keyfile, port=1234, backlog=0, tcp_buffer_size=32_768):
-        # create required directories if not present
-        if not os.path.exists(self.tmp_dir):
-            os.makedirs(self.tmp_dir)
+        # create data dir if not present
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
-
-        self._remove_tmp_file()
 
         self.port = port
         self.backlog = backlog
@@ -52,6 +44,12 @@ class TcpServer:
 
         # bind socket to all available ipv4 interfaces and PORT
         self.server_socket.bind(('', self.port))
+
+        # allow socket to reuse the address
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # set socket timeout in seconds
+        self.server_socket.settimeout(30)
 
         # set server to non-blocking mode
         self.server_socket.setblocking(False)
@@ -97,14 +95,8 @@ class TcpServer:
                 self._send_response('Invalid Path')
                 return
 
-            # save data from client to tmp file
-            self._save_recv_to_tmp_file()
-
             # handle server action and store response for the client
             response = self._handle_server_action(action, argument)
-
-            # remove tmp file if it exists
-            self._remove_tmp_file()
 
             # send response to the client
             self._send_response(response)
@@ -121,32 +113,14 @@ class TcpServer:
         if print_response:
             print('\t' + response_str)
 
-    def _end_transfer(self):
-        self.secure_socket.sendall(ServerActions.end_transfer)
-
-    def _save_recv_to_tmp_file(self) -> None:
-        while True:
-            # receive data
-            data = self.secure_socket.recv(self.tcp_buffer_size)
-            if not data or data == ServerActions.end_transfer:
-                break
-
-            # store data in tmp file
-            with open(self.tmp_file_path, 'ab') as tmp_file:
-                tmp_file.write(data)
-
     def _handle_server_action(self, action: str, argument: str) -> str:
-        # TODO: determine what to do based on the received action
-        response = 'Action Accepted'
+        response = 'Action Accepted'  # default response
         match action:
-            case 'STORE FILE':
-                # get modification date
-                modification_date = struct.unpack('d', self.secure_socket.recv(self.tcp_buffer_size))[0]
-                self._handle_storing(argument, False, modification_date)
-            case 'STORE DIR':
-                result = self._handle_storing(argument, True)
-                if result == -1:
-                    response = 'Invalid Data'
+            case 'STORE':
+                try:
+                    self._handle_storing(argument)
+                except tarfile.TarError:
+                    response = 'Something went wrong'
             case 'GET FILE':
                 result = self._handle_file_retrieving(argument)
                 if result == -1:
@@ -172,73 +146,51 @@ class TcpServer:
 
         return response
 
-    def _remove_tmp_file(self) -> None:
-        if os.path.exists(self.tmp_file_path):
-            os.remove(self.tmp_file_path)
-
-    @classmethod
-    def _handle_storing(cls, save_path: str, directory: bool, modification_time: float = None) -> int:
+    def _handle_storing(self, save_path: str) -> int:
         # add '/' to the beginning if necessary
         if save_path[0] != '/':
             save_path = '/' + save_path
 
+        full_save_path = self.data_dir + save_path
+
         # create directories if they don't exist
-        os.makedirs(cls.data_dir + save_path[:save_path.rindex('/')], exist_ok=True)
+        os.makedirs(full_save_path, exist_ok=True)
 
-        print(f'\tSaving data to {save_path}')
-        if not directory:
-            shutil.move(cls.tmp_file_path, cls.data_dir + save_path)
-            if modification_time is not None:
-                os.utime(cls.data_dir + save_path, (modification_time, modification_time))
-            return 0
-
-        # directories are send as tar compressed archives
-        if not tarfile.is_tarfile(cls.tmp_file_path):
-            return -1
-        with tarfile.open(cls.tmp_file_path, 'r') as tar_ref:
-            tar_ref.extractall(cls.data_dir + save_path)
+        socket_file = self.secure_socket.makefile('rb')
+        with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
+            socket_tar.extractall(full_save_path, filter='tar')
 
         return 0
 
-    def _send_file(self, path: str) -> None:
-        with open(path, 'rb') as file:
-            while True:
-                data_chunk = file.read(self.tcp_buffer_size)
-                if not data_chunk:
-                    break
-                self.secure_socket.sendall(data_chunk)
-
-        self._end_transfer()
+    def _send_tar(self, path: str):
+        socket_file = self.secure_socket.makefile('wb')
+        try:
+            with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
+                socket_tar.add(path, arcname=os.path.basename(path))
+                return 0
+        except tarfile.TarError:
+            return -1
 
     def _handle_file_retrieving(self, file_path: str) -> int:
-        print(f'\tSending file {file_path}')
+        # print(f'\tSending file {file_path}')
         full_path = self.data_dir + file_path
 
         if not os.path.isfile(full_path):
             return -1
 
-        self._send_file(full_path)
-
-        # send file modification date
-        self.secure_socket.sendall(struct.pack('d', os.path.getmtime(full_path)))
-        return 0
+        return self._send_tar(full_path)
 
     def _handle_dir_retrieving(self, dir_path):
-        print(f'\tSending dir {dir_path}')
+        # print(f'\tSending dir {dir_path}')
         full_path = self.data_dir + dir_path
 
         if not os.path.isdir(full_path):
             return -1
 
-        # create a tar archive of the direcotry
-        with tarfile.open(self.tmp_tar_path, 'w') as tar_ref:
-            tar_ref.add(full_path, arcname=os.path.basename(full_path))
-
-        self._send_file(self.tmp_tar_path)
-        return 0
+        return self._send_tar(full_path)
 
     def _handle_getting_modification_date(self, path):
-        print(f'\tSending modification date of {path}')
+        # print(f'\tSending modification date of {path}')
         full_path = self.data_dir + path
 
         if not os.path.exists(full_path):
@@ -256,7 +208,7 @@ class TcpServer:
         return 0
 
     def _handle_deleting(self, path: str) -> int:
-        print(f'\tDeleting data in {path}')
+        # print(f'\tDeleting data in {path}')
         full_path = self.data_dir + path
 
         if not os.path.exists(full_path):
@@ -270,7 +222,7 @@ class TcpServer:
         return 0
 
     def _handle_listing(self, path: str) -> int:
-        print(f'\tListing data in {path}')
+        # print(f'\tListing data in {path}')
         full_path = self.data_dir + path
 
         if not os.path.exists(full_path):
@@ -283,15 +235,10 @@ class TcpServer:
 
 class ServerActions:
     spacer = '<;;;>'
-    end_transfer = '<;;EOT;;>'.encode()
 
     @classmethod
-    def store_file(cls, file_path: str) -> bytes:
-        return ('STORE FILE' + cls.spacer + file_path).encode()
-
-    @classmethod
-    def store_dir(cls, dir_path: str) -> bytes:
-        return ('STORE DIR' + cls.spacer + dir_path).encode()
+    def store(cls, path: str) -> bytes:
+        return ('STORE' + cls.spacer + path).encode()
 
     @classmethod
     def get_file(cls, file_path: str) -> bytes:
