@@ -4,9 +4,12 @@ import select
 
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, UTC, timedelta
 
 import tarfile
+import json
+import hashlib
+import secrets
 
 
 class TcpServer:
@@ -16,6 +19,18 @@ class TcpServer:
     @classmethod
     def get_host_ip(cls):
         return socket.gethostbyname(socket.gethostname())
+
+    @staticmethod
+    def generate_user_token(username) -> tuple[str, dict[str, str]]:
+        # create a 128-digit token (64 hex numbers)
+        token = secrets.token_hex(64)
+
+        token_metadata = {
+            'username': username,
+            'expiration': datetime.now(UTC) + timedelta(hours=1),
+        }
+
+        return token, token_metadata
 
     def __init__(self, certfile, keyfile, port=1234, backlog=0, tcp_buffer_size=32_768):
         # create data dir if not present
@@ -33,9 +48,12 @@ class TcpServer:
         self.certfile = certfile
         self.keyfile = keyfile
 
-        self.context = None
         self.server_socket = None
+        self.context = None
         self.secure_socket = None
+
+        self.users = json.load(open('users_db.json', 'r'))  # load users db
+        self.access_tokens = dict()
 
     def run(self):
         # create server socket
@@ -87,6 +105,20 @@ class TcpServer:
         print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {self.secure_socket.version()}')
 
         try:
+            # receive authentication - 'GET TOKEN/AUTHENTICATE <> user <> pass/token'
+            auth = self.secure_socket.recv(self.tcp_buffer_size).decode()
+            auth_status = self._handle_authentication_and_token_creation(auth)
+
+            if auth_status == -1:
+                self._send_response('Authentication failed')
+                self.secure_socket.close()
+                return
+            elif auth_status == 0:
+                self._send_response('Authentication successful', False)
+            elif auth_status == 1:
+                self._send_response('Token created successfully')
+                return
+
             # receive header from the client
             header = self.secure_socket.recv(self.tcp_buffer_size).decode()
 
@@ -103,7 +135,7 @@ class TcpServer:
             # send response to the client
             self._send_response(response)
         except ValueError as err:
-            self._send_response('Invalid Header')
+            self._send_response('Invalid Request')
             print(f'\tValueError: {err}')
 
         except socket.error as err:
@@ -111,6 +143,51 @@ class TcpServer:
 
         finally:
             self.secure_socket.close()
+
+    # TODO: implement
+    def _handle_authentication_and_token_creation(self, auth: str):
+        action, user, auth_method = auth.split(ServerActions.spacer)
+
+        if user not in self.users:
+            return -1
+
+        if action == 'GET TOKEN':
+            # authenticate user
+            user_password = self.users[user]
+            sent_password = hashlib.sha512(auth_method.encode()).hexdigest()
+
+            if sent_password != user_password:
+                return -1
+
+            # generate token
+            token, token_metadata = self.generate_user_token(user)
+
+            # store token
+            self.access_tokens[token] = token_metadata
+
+            # send token to the client
+            self._send_response(token, False)
+
+            return 1
+
+        elif action == 'AUTHENTICATE':
+            provided_token = auth_method
+
+            if provided_token not in self.access_tokens:
+                return -1
+
+            # get token metadata
+            token_metadata = self.access_tokens[provided_token]
+
+            # check if token is for the right user
+            if token_metadata['username'] != user:
+                return -1
+
+            # check if token expired
+            if datetime.now(UTC) > token_metadata['expiration']:
+                return -1
+
+            return 0
 
     def _send_response(self, response: str, print_response: bool = True) -> None:
         response_str = str(response)
@@ -240,6 +317,14 @@ class TcpServer:
 
 class ServerActions:
     spacer = '<;;;>'
+
+    @classmethod
+    def get_token(cls, user: str, password: str) -> bytes:
+        return ('GET TOKEN' + cls.spacer + user + cls.spacer + password).encode()
+
+    @classmethod
+    def authenticate(cls, user: str, token: str) -> bytes:
+        return ('AUTHENTICATE' + cls.spacer + user + cls.spacer + token).encode()
 
     @classmethod
     def store(cls, path: str) -> bytes:

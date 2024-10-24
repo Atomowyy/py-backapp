@@ -26,11 +26,30 @@ secure_socket = context.wrap_socket(client_socket, server_hostname='localhost')
 # connect to server
 secure_socket.connect(('localhost', 1234))
 
+#####################################
+# print('\nGet auth token')
+# command = ServerActions.get_token('admin', 'dupa')
+# secure_socket.sendall(command)
+#
+# token = secure_socket.recv(1024).decode()
+# print(f'Auth token: {token}')
+
+#####################################
+# send token to verify yourself (do this before every request, except for Getting auth token)
+token = ''
+auth = ServerActions.authenticate('admin', token)
+secure_socket.send(auth)
+
+auth_response = secure_socket.recv(1024).decode()
+print(f'Auth response: {auth_response}')
+
+if auth_response == 'Authentication failed':
+    raise Exception('Authentication failed')
 
 #####################################
 # print('\nTesting file transfer')
 # command = ServerActions.store('test/test2/')
-# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+# secure_socket.send(command)  # sendall - wait until all data is sent, else error
 #
 # path = '../LICENSE'
 # socket_file = secure_socket.makefile('wb')
@@ -146,11 +165,11 @@ secure_socket.connect(('localhost', 1234))
 # print(response.decode())
 
 #####################################
-print('\nTest sending invalid path')
-command = ServerActions.get_file('../')  # move outside client's 'data' directory
-
-secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
-
-# get server response
-response = secure_socket.recv(1024)
-print(response.decode())
+# print('\nTest sending invalid path')
+# command = ServerActions.get_file('../')  # move outside client's 'data' directory
+#
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())

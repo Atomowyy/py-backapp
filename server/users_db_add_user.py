@@ -1,7 +1,7 @@
 import json
 import hashlib
 
-users = json.load(open('user_db.json', 'r'))
+users = json.load(open('users_db.json', 'r'))
 
 username = input('Username: ')
 if username in users:
@@ -22,8 +22,8 @@ if password != retyped_password:
 
 # add user to the dict
 users[username] = password
-# dump dict as json into user_db.json
-with open('user_db.json', 'w') as user_db:
+# dump dict as json into users_db.json
+with open('users_db.json', 'w') as user_db:
     user_db.write(json.dumps(users, indent='\t'))
 
 print('\nUser added successfully')
