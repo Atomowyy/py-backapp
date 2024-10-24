@@ -87,19 +87,24 @@ class TcpServer:
         print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {self.secure_socket.version()}')
 
         try:
-            # receive action from the client
-            action, argument = self.secure_socket.recv(self.tcp_buffer_size).decode().split(ServerActions.spacer)
+            # receive header from the client
+            header = self.secure_socket.recv(self.tcp_buffer_size).decode()
+
+            # unpack action and argument from header
+            action, argument = header.split(ServerActions.spacer)
             print(f'\tAction: {action}, argument: {argument}')
 
             if '..' in argument:  # moving outside data_dir
-                self._send_response('Invalid Path')
-                return
+                raise ValueError('".." not allowed in argument (path to resource)')
 
             # handle server action and store response for the client
             response = self._handle_server_action(action, argument)
 
             # send response to the client
             self._send_response(response)
+        except ValueError as err:
+            self._send_response('Invalid Header')
+            print(f'\tValueError: {err}')
 
         except socket.error as err:
             print(f'\tSocket error: {err}')

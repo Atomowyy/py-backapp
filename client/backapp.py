@@ -28,18 +28,18 @@ secure_socket.connect(('localhost', 1234))
 
 
 #####################################
-print('\nTesting file transfer')
-command = ServerActions.store('test/test2/')
-secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
-
-path = '../LICENSE'
-socket_file = secure_socket.makefile('wb')
-with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
-    socket_tar.add(path, arcname=os.path.basename(path))
-
-# get server response
-response = secure_socket.recv(1024)
-print(response.decode())
+# print('\nTesting file transfer')
+# command = ServerActions.store('test/test2/')
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#
+# path = '../LICENSE'
+# socket_file = secure_socket.makefile('wb')
+# with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
+#     socket_tar.add(path, arcname=os.path.basename(path))
+#
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())
 
 #####################################
 # print('\nTesting folder transfer')
@@ -121,3 +121,36 @@ print(response.decode())
 # # get server response
 # response = secure_socket.recv(1024)
 # print(response.decode())
+
+#####################################
+# print('\nTest sending invalid action')
+# command = 'I AM INVALID   1234'.encode()
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())
+
+#####################################
+# print('\nTest sending invalid action #2')
+#
+# # get binary data from .img
+# with open('../screenshots/docker_1.png', 'rb') as tmp:
+#     data = tmp.read(1024)
+#     command = data
+#
+# secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+#
+# # get server response
+# response = secure_socket.recv(1024)
+# print(response.decode())
+
+#####################################
+print('\nTest sending invalid path')
+command = ServerActions.get_file('../')  # move outside client's 'data' directory
+
+secure_socket.sendall(command)  # sendall - wait until all data is sent, else error
+
+# get server response
+response = secure_socket.recv(1024)
+print(response.decode())
