@@ -29,6 +29,11 @@ python backapp.py
 python server.py
 ```
 
+## Adding users to servers' database
+```shell
+python server/users_db_add_user.py
+```
+
 ## Self-signed SSL certificate with `openssl`
 Generate a 2048-bit RSA private key:
 ```shell
@@ -56,11 +61,11 @@ docker image build -f ./server/server.Dockerfile -t py-backapp:test .
 ```
 ### Running server in a container
 ```shell
-docker container run py-backapp:test
+docker container run -p 1234:1234 py-backapp:test
 ```
 ### Running bash in a server container
 ```shell
-docker container run -it py-backapp:test "/bin/bash"
+docker container run --rm -it -p 1234:1234 py-backapp:test "/bin/bash"
 ```
 
 ### Running server with docker-compose

@@ -11,8 +11,6 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE $PORT/tcp
 
-COPY certificates ./certificates
-COPY tcp_server.py .
-COPY server.py .
+COPY ./server .
 
 CMD [ "python3", "server.py" ]
