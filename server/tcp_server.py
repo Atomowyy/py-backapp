@@ -111,7 +111,6 @@ class TcpServer:
 
             if auth_status == -1:
                 self._send_response('Authentication failed')
-                self.secure_socket.close()
                 return
             elif auth_status == 0:
                 self._send_response('Authentication successful', False)
@@ -144,7 +143,6 @@ class TcpServer:
         finally:
             self.secure_socket.close()
 
-    # TODO: implement
     def _handle_authentication_and_token_creation(self, auth: str):
         action, user, auth_method = auth.split(ServerActions.spacer)
 
