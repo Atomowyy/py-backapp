@@ -11,6 +11,8 @@ import json
 import hashlib
 import secrets
 
+from base64 import b64encode
+
 
 class TcpServer:
     project_path = os.path.abspath('./')
@@ -153,8 +155,11 @@ class TcpServer:
 
         if action == 'GET TOKEN':
             # authenticate user
-            user_password = self.users[user]
-            sent_password = hashlib.sha512(auth_method.encode()).hexdigest()
+            user_password = self.users[user]['password']
+            salt = self.users[user]['salt']
+            sent_password = b64encode(
+                hashlib.scrypt(auth_method.encode(), salt=salt.encode(), n=2**12, r=10, p=1, dklen=128)
+            ).decode()
 
             if sent_password != user_password:
                 return -1

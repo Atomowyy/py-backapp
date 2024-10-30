@@ -1,3 +1,6 @@
 {
-	"admin": "ecbc63070b21965c18dd890b83ca2da827951536128591dcff357e2bf75052228c04257dcc8271b6ccf896763b9845e6029811038aee55ffabd1de8b8f99fcfc"
+	"admin": {
+		"password": "KPdcMKMzgkz/AngNqzyKqUkN6umJs58qDNvkIUdBlQvLJ+gYkVM1G5i6x6UE7VFr1+vqGG81LpOTXD2rV59SDCjC8YPky3t0PgBtLgTq3C7J//QUucrjzyFJE9QBXhrLBiRuqRdWSqOuhguxeeUa23r7Dn7dLvFFqzCnMVtBPGk=",
+		"salt": "Fn2aG3WCgZCgfBp33DfOIg=="
+	}
 }
