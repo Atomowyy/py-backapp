@@ -7,7 +7,9 @@ client = TcpClient()
 
 #####################################
 # client.get_auth_token()  # 0 - token received, 1 - error
+# exit()
 #####################################
+# send token to the server
 token_is_valid = (client.verify_token() == 0)  # 0 - valid, 1 - invalid
 
 if not token_is_valid:

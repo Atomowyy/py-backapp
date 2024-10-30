@@ -16,6 +16,8 @@ class TcpServer:
     project_path = os.path.abspath('./')
     data_dir = project_path + '/data'
 
+    spacer = '<;;;>'
+
     @classmethod
     def get_host_ip(cls):
         return socket.gethostbyname(socket.gethostname())
@@ -122,7 +124,7 @@ class TcpServer:
             header = self.secure_socket.recv(self.tcp_buffer_size).decode()
 
             # unpack action and argument from header
-            action, argument = header.split(ServerActions.spacer)
+            action, argument = header.split(self.spacer)
             print(f'\tAction: {action}, argument: {argument}')
 
             if '..' in argument:  # moving outside data_dir
@@ -144,7 +146,7 @@ class TcpServer:
             self.secure_socket.close()
 
     def _handle_authentication_and_token_creation(self, auth: str):
-        action, user, auth_method = auth.split(ServerActions.spacer)
+        action, user, auth_method = auth.split(self.spacer)
 
         if user not in self.users:
             return -1
@@ -311,39 +313,3 @@ class TcpServer:
         listing = '  '.join(os.listdir(full_path))
         self._send_response(listing, False)
         return 0
-
-
-class ServerActions:
-    spacer = '<;;;>'
-
-    @classmethod
-    def get_token(cls, user: str, password: str) -> bytes:
-        return ('GET TOKEN' + cls.spacer + user + cls.spacer + password).encode()
-
-    @classmethod
-    def authenticate(cls, user: str, token: str) -> bytes:
-        return ('AUTHENTICATE' + cls.spacer + user + cls.spacer + token).encode()
-
-    @classmethod
-    def store(cls, path: str) -> bytes:
-        return ('STORE' + cls.spacer + path).encode()
-
-    @classmethod
-    def get_file(cls, file_path: str) -> bytes:
-        return ('GET FILE' + cls.spacer + file_path).encode()
-
-    @classmethod
-    def get_dir(cls, dir_path: str) -> bytes:
-        return ('GET DIR' + cls.spacer + dir_path).encode()
-
-    @classmethod
-    def get_modification_date(cls, path: str) -> bytes:
-        return ('GET MODIFICATION DATE' + cls.spacer + path).encode()
-
-    @classmethod
-    def delete(cls, path: str) -> bytes:
-        return ('DELETE DATA' + cls.spacer + path).encode()
-
-    @classmethod
-    def list_data(cls, path: str) -> bytes:
-        return ('LIST DATA' + cls.spacer + path).encode()
