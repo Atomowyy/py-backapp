@@ -66,7 +66,6 @@ class TcpClient:
         if response == 'Authentication failed':
             return -1
 
-        print('Token received')
         # if authentication was successful -> you get a token
         self.config['token'] = response
 

@@ -26,9 +26,9 @@ password_dict = {
     "password": password_hash_base64.decode(),
     "salt": salt
 }
-
 # add user to the dict
 users[username] = password_dict
+
 # dump dict as json into users_db.json
 with open('users_db.json', 'w') as user_db:
     user_db.write(json.dumps(users, indent='\t'))
