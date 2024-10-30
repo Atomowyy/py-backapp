@@ -1,3 +1,8 @@
+# py-backapp - user data
+client/config.json
+server/data/*
+server/users_db.json
+
 # idea
 .idea/
 
