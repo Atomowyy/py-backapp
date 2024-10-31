@@ -111,7 +111,7 @@ class TcpServer:
         try:
             # receive authentication - 'GET TOKEN/AUTHENTICATE <> user <> pass/token'
             auth = self.secure_socket.recv(self.tcp_buffer_size).decode()
-            auth_status = self._handle_authentication_and_token_creation(auth)
+            auth_status = self._handle_authorisation_and_token_creation(auth)
 
             if auth_status == -1:
                 self._send_response('Access denied')
@@ -147,7 +147,7 @@ class TcpServer:
         finally:
             self.secure_socket.close()
 
-    def _handle_authentication_and_token_creation(self, auth: str) -> int:
+    def _handle_authorisation_and_token_creation(self, auth: str) -> int:
         action, user, auth = auth.split(self.spacer)
 
         if user not in self.users:
@@ -163,6 +163,11 @@ class TcpServer:
 
             if sent_password != user_password:
                 return -1
+
+            # remove old users' tokens
+            self.access_tokens = {
+                token: metadata for token, metadata in self.access_tokens.items() if metadata['username'] != user
+            }
 
             # generate token
             token, token_metadata = self.generate_user_token(user)
