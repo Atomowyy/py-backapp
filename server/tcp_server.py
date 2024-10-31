@@ -21,11 +21,11 @@ class TcpServer:
     spacer = '<;;;>'
 
     @classmethod
-    def get_host_ip(cls):
+    def get_host_ip(cls) -> str:
         return socket.gethostbyname(socket.gethostname())
 
     @staticmethod
-    def generate_user_token(username) -> tuple[str, dict[str, str]]:
+    def generate_user_token(username: str) -> tuple[str, dict[str, str]]:
         # create a 128-digit token (64 hex numbers)
         token = secrets.token_hex(64)
 
@@ -36,7 +36,7 @@ class TcpServer:
 
         return token, token_metadata
 
-    def __init__(self, certfile, keyfile, port=1234, backlog=0, tcp_buffer_size=32_768):
+    def __init__(self, certfile: str, keyfile: str, port: int = 1234, backlog: int = 0, tcp_buffer_size: int = 32_768):
         # create data dir if not present
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
@@ -59,7 +59,7 @@ class TcpServer:
         self.users = json.load(open('users_db.json', 'r'))  # load users db
         self.access_tokens = dict()
 
-    def run(self):
+    def run(self) -> None:
         # create server socket
         # AF_INET - IPv4, SOCK_STREAM - TCP
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -99,10 +99,10 @@ class TcpServer:
                 except socket.error as err:
                     print(f'\tSocket error: {err}')
 
-    def close_server_socket(self):
+    def close_server_socket(self) -> None:
         self.server_socket.close()
 
-    def _handle_connection(self, client_socket, client_address):
+    def _handle_connection(self, client_socket: socket.socket, client_address: tuple[str, str]) -> None:
         # secure client socket with ssl
         self.secure_socket = self.context.wrap_socket(client_socket, server_side=True)
         # print connection info
@@ -114,10 +114,10 @@ class TcpServer:
             auth_status = self._handle_authentication_and_token_creation(auth)
 
             if auth_status == -1:
-                self._send_response('Authentication failed')
+                self._send_response('Access denied')
                 return
             elif auth_status == 0:
-                self._send_response('Authentication successful', False)
+                self._send_response('Access granted', False)
             elif auth_status == 1:
                 self._send_response('Token created successfully')
                 return
@@ -147,8 +147,8 @@ class TcpServer:
         finally:
             self.secure_socket.close()
 
-    def _handle_authentication_and_token_creation(self, auth: str):
-        action, user, auth_method = auth.split(self.spacer)
+    def _handle_authentication_and_token_creation(self, auth: str) -> int:
+        action, user, auth = auth.split(self.spacer)
 
         if user not in self.users:
             return -1
@@ -158,7 +158,7 @@ class TcpServer:
             user_password = self.users[user]['password']
             salt = self.users[user]['salt']
             sent_password = b64encode(
-                hashlib.scrypt(auth_method.encode(), salt=salt.encode(), n=2**12, r=10, p=1, dklen=128)
+                hashlib.scrypt(auth.encode(), salt=salt.encode(), n=2**12, r=10, p=1, dklen=128)
             ).decode()
 
             if sent_password != user_password:
@@ -175,8 +175,8 @@ class TcpServer:
 
             return 1
 
-        elif action == 'AUTHENTICATE':
-            provided_token = auth_method
+        elif action == 'AUTHORIZE':
+            provided_token = auth
 
             if provided_token not in self.access_tokens:
                 return -1
@@ -204,18 +204,21 @@ class TcpServer:
         response = 'Action Accepted'  # default response
         match action:
             case 'STORE':
-                try:
-                    self._handle_storing(argument)
-                except tarfile.TarError:
-                    response = 'Something went wrong'
+                result = self._handle_storing(argument)
+                if result == -1:
+                    response = 'Data extraction failed'
             case 'GET FILE':
                 result = self._handle_file_retrieving(argument)
                 if result == -1:
                     response = 'Invalid Path'
+                if result == 1:
+                    response = 'Data archiving failed'
             case 'GET DIR':
                 result = self._handle_dir_retrieving(argument)
                 if result == -1:
                     response = 'Invalid Path'
+                if result == 1:
+                    response = 'Data archiving failed'
             case 'GET MODIFICATION DATE':
                 result = self._handle_getting_modification_date(argument)
                 if result == -1:
@@ -223,7 +226,7 @@ class TcpServer:
             case 'DELETE DATA':
                 result = self._handle_deleting(argument)
                 if result == -1:
-                    response = 'Provided path does not exist'
+                    response = 'Invalid Path'
             case 'LIST DATA':
                 result = self._handle_listing(argument)
                 if result == -1:
@@ -244,19 +247,21 @@ class TcpServer:
         os.makedirs(full_save_path, exist_ok=True)
 
         socket_file = self.secure_socket.makefile('rb')
-        with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
-            socket_tar.extractall(full_save_path, filter='tar')
+        try:
+            with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
+                socket_tar.extractall(full_save_path, filter='tar')
+                return 0
+        except tarfile.TarError:
+            return -1
 
-        return 0
-
-    def _send_tar(self, path: str):
+    def _send_tar(self, path: str) -> int:
         socket_file = self.secure_socket.makefile('wb')
         try:
             with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
                 socket_tar.add(path, arcname=os.path.basename(path))
                 return 0
         except tarfile.TarError:
-            return -1
+            return 1
 
     def _handle_file_retrieving(self, file_path: str) -> int:
         # print(f'\tSending file {file_path}')
@@ -267,7 +272,7 @@ class TcpServer:
 
         return self._send_tar(full_path)
 
-    def _handle_dir_retrieving(self, dir_path):
+    def _handle_dir_retrieving(self, dir_path: str) -> int:
         # print(f'\tSending dir {dir_path}')
         full_path = self.data_dir + dir_path
 
@@ -276,7 +281,7 @@ class TcpServer:
 
         return self._send_tar(full_path)
 
-    def _handle_getting_modification_date(self, path):
+    def _handle_getting_modification_date(self, path: str) -> int:
         # print(f'\tSending modification date of {path}')
         full_path = self.data_dir + path
 

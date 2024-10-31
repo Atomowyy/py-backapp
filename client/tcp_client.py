@@ -46,13 +46,13 @@ class TcpClient:
         return self.secure_socket.recv(1024).decode()
 
     def send_auth_token(self) -> str:
-        self._send_command(ServerActions.authenticate(self.username, self.token))
+        self._send_command(ServerActions.authorize(self.username, self.token))
         return self._get_response()
 
     def verify_token(self) -> int:
         response = self.send_auth_token()
 
-        if response == 'Authentication failed':
+        if response == 'Access denied':
             self.secure_socket.close()
             return -1
 
@@ -63,10 +63,10 @@ class TcpClient:
         self._send_command(ServerActions.get_token(self.username, password))
         response = self._get_response()
 
-        if response == 'Authentication failed':
+        if response == 'Access denied':
             return -1
 
-        # if authentication was successful -> you get a token
+        # if authorization was successful -> you get a token
         self.config['token'] = response
 
         # dump config to config.json
@@ -75,7 +75,7 @@ class TcpClient:
 
         return 0
 
-    def store(self, path, server_path) -> str:
+    def store(self, path: str, server_path: str) -> str:
         self._send_command(ServerActions.store(server_path))
 
         socket_file = self.secure_socket.makefile(mode='wb')
@@ -86,7 +86,7 @@ class TcpClient:
 
         return self._get_response()
 
-    def get(self, server_path, extract_path, is_dir: bool = False) -> str:
+    def get(self, server_path: str, extract_path: str, is_dir: bool = False) -> str:
         if is_dir:
             self._send_command(ServerActions.get_dir(server_path))
         else:
@@ -98,7 +98,7 @@ class TcpClient:
 
         return self._get_response()
 
-    def get_dir(self, server_path, extract_path) -> str:
+    def get_dir(self, server_path: str, extract_path: str) -> str:
         self._send_command(ServerActions.get_dir(server_path))
 
         socket_file = self.secure_socket.makefile('rb')
@@ -107,21 +107,21 @@ class TcpClient:
 
         return self._get_response()
 
-    def list_data(self, server_path) -> tuple[str, str]:
+    def list_data(self, server_path: str) -> tuple[str, str]:
         self._send_command(ServerActions.list_data(server_path))
 
         listing = self._get_response()
         response = self._get_response()
         return listing, response
 
-    def get_modification_date(self, server_path) -> tuple[datetime, str]:
+    def get_modification_date(self, server_path: str) -> tuple[datetime, str]:
         self._send_command(ServerActions.get_modification_date(server_path))
 
         modification_date = datetime.fromisoformat(self._get_response())
         response = self._get_response()
         return modification_date, response
 
-    def delete(self, server_path) -> str:
+    def delete(self, server_path: str) -> str:
         self._send_command(ServerActions.delete(server_path))
 
         return self._get_response()
@@ -135,8 +135,8 @@ class ServerActions:
         return ('GET TOKEN' + cls.spacer + user + cls.spacer + password).encode()
 
     @classmethod
-    def authenticate(cls, user: str, token: str) -> bytes:
-        return ('AUTHENTICATE' + cls.spacer + user + cls.spacer + token).encode()
+    def authorize(cls, user: str, token: str) -> bytes:
+        return ('AUTHORIZE' + cls.spacer + user + cls.spacer + token).encode()
 
     @classmethod
     def store(cls, path: str) -> bytes:
