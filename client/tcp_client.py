@@ -17,7 +17,7 @@ class TcpClient:
         raise Exception('Invalid client config file')
 
     server = config['server']
-    port = int(config['port'])
+    port = config['port']
     username = config['username']
     token = config['token']
 
@@ -37,7 +37,10 @@ class TcpClient:
         self.secure_socket = context.wrap_socket(client_socket)
 
         # connect to the server
-        self.secure_socket.connect((self.server, self.port))
+        self.secure_socket.connect((self.server, int(self.port)))
+
+    def close_connection(self) -> None:
+        self.secure_socket.close()
 
     def _send_command(self, command: bytes) -> None:
         self.secure_socket.sendall(command)
@@ -68,6 +71,7 @@ class TcpClient:
 
         # if authorization was successful -> you get a token
         self.config['token'] = response
+        TcpClient.token = response
 
         # dump config to config.json
         with open('config.json', 'w') as user_db:
@@ -91,15 +95,6 @@ class TcpClient:
             self._send_command(ServerActions.get_dir(server_path))
         else:
             self._send_command(ServerActions.get_file(server_path))
-
-        socket_file = self.secure_socket.makefile('rb')
-        with tarfile.open(fileobj=socket_file, mode='r|') as tar:
-            tar.extractall(extract_path, filter='tar')
-
-        return self._get_response()
-
-    def get_dir(self, server_path: str, extract_path: str) -> str:
-        self._send_command(ServerActions.get_dir(server_path))
 
         socket_file = self.secure_socket.makefile('rb')
         with tarfile.open(fileobj=socket_file, mode='r|') as tar:

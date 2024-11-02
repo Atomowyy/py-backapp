@@ -1,9 +1,11 @@
 from platform import system
+from socket import socket, error as socket_error
 from time import sleep
 from xml.sax import parse
 from tcp_client import TcpClient
 from datetime import datetime
 import os
+import sys
 import argparse
 import json
 
@@ -12,48 +14,45 @@ def user_check(config: json) -> bool:
     username = config['username']
     if username == '':
         return False
-    else:
-        return True
-    pass
+    return True
 
 
 def server_check(config: json) -> bool:
     server: str = config['server']
+    print(server)
     if server == '':
         return False
-    else:
-        return True
-    pass
+    return True
 
 
-def token_check(config, client) -> bool:
-    token: str = config['token']
-    if token == '':
-        server_response = client.get_auth_token()
-        #print(server_response)
-        while server_response == -1:
-            client = TcpClient()
-            #print("Authentication failure")
-            server_response = client.get_auth_token()
-            #print(server_response)
-        print("Authenticated succesfully!")
-        #print('Token granted, please restart py-backapp')
-        return True
-    return False
+# def token_check(config, client) -> bool:
+#     token: str = config['token']
+#     if token == '':
+#         server_response = client.get_auth_token()
+#         #print(server_response)
+#         while server_response == -1:
+#             client = TcpClient()
+#             #print("Authentication failure")
+#             server_response = client.get_auth_token()
+#             #print(server_response)
+#         print("Authenticated successfully!")
+#         #print('Token granted, please restart py-backapp')
+#         return True
+#     return False
 
 
 def server_set(config) -> None:
     config['server'] = str(input('Server IP: '))
     config['port'] = str(input('Server port: '))
     with open('config.json', 'w') as cfg:
-        json.dump(config, cfg, indent=4)
+        cfg.write(json.dumps(config, indent='\t'))
     print('Server settings edited successfully!')
 
 
 def user_set(config) -> None:
     config['username'] = str(input('Username: '))
     with open('config.json', 'w') as cfg:
-        json.dump(config, cfg, indent=4)
+        cfg.write(json.dumps(config, indent='\t'))
 
 
 def print_menu() -> None:
@@ -71,12 +70,20 @@ def print_menu() -> None:
 def menu() -> None:
     # verifying JSON
     config: json = json.load(open('config.json', 'r'))
+    reload_needed = False
+
     if not server_check(config):
         print('There is no specified server, please enter valid IP address and port number')
         server_set(config)
+        reload_needed = True
     if not user_check(config):
         print("There is no user logged in.")
         user_set(config)
+        reload_needed = True
+
+    if reload_needed:
+        # replace current process with the new instance of itself
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     client = TcpClient()
     server_response = client.verify_token()
@@ -88,15 +95,15 @@ def menu() -> None:
             server_response = client.get_auth_token()
             print(server_response)
     else:
-        client.secure_socket.close()
-    print("Authenticated succesfully!")
-    print('Token granted, please restart py-backapp')
+        client.close_connection()
+    print("Authenticated successfully!")
 
     while True:
         client = TcpClient()
         # if token_check(config, client):
         #     print("Connected to the server!")
         print(f'Hello {config["username"]}')
+        input()  # press enter to show the menu
         print_menu()
         client.verify_token()
         match input():
@@ -114,7 +121,7 @@ def menu() -> None:
                 print('download directories from the server')
             case '5': #dziala
                 print('list your uploaded files')
-                ls, response = client.list_data(f'/dziekan')  # list data
+                ls, response = client.list_data(f'/{config['username']}')  # list data
                 print(ls)
             case '6':
                 print('synchronize data')
@@ -125,7 +132,7 @@ def menu() -> None:
             case '9':
                 exit()
             case _:
-                client.secure_socket.close()
+                client.close_connection()
                 print('Wrong option!')
 
 
@@ -135,7 +142,7 @@ def cli(args) -> None:
     if args.username:
         config['username'] = args.username
         with open('config.json', 'w') as cfg:
-            json.dump(config, cfg, indent=4)
+            cfg.write(json.dumps(config, indent='\t'))
 
     if not server_check(config):
         print('There is no specified server, edit config.json')
@@ -182,10 +189,17 @@ parser.add_argument('-r', '--removefile')
 parser.add_argument('-R', '--removeall')
 args = parser.parse_args()
 
-if args.interactive:
-    menu()
-else:
-    cli(args)
+try:
+    if args.interactive:
+        menu()
+    else:
+        cli(args)
+except KeyboardInterrupt:
+    print('\nExiting...')
+    exit()
+except socket_error as err:
+    print(socket_error)
+    exit(-1)
 
 
 
