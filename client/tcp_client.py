@@ -48,12 +48,19 @@ class TcpClient:
     def _get_response(self) -> str:
         return self.secure_socket.recv(1024).decode()
 
-    def send_auth_token(self) -> str:
+    def send_auth_token(self) -> int:
         self._send_command(ServerActions.authorize(self.username, self.token))
-        return self._get_response()
+        response = self._get_response()
+
+        if response == 'Access denied':
+            self.secure_socket.close()
+            return -1
+
+        return 0
 
     def verify_token(self) -> int:
-        response = self.send_auth_token()
+        self._send_command(ServerActions.verify_token(self.username, self.token))
+        response = self._get_response()
 
         if response == 'Access denied':
             self.secure_socket.close()
@@ -132,6 +139,10 @@ class ServerActions:
     @classmethod
     def authorize(cls, user: str, token: str) -> bytes:
         return ('AUTHORIZE' + cls.spacer + user + cls.spacer + token).encode()
+
+    @classmethod
+    def verify_token(cls, user: str, token: str) -> bytes:
+        return ('VERIFY TOKEN' + cls.spacer + user + cls.spacer + token).encode()
 
     @classmethod
     def store(cls, path: str) -> bytes:

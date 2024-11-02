@@ -97,7 +97,10 @@ class TcpServer:
                     client_socket, client_address = s.accept()
                     self._handle_connection(client_socket, client_address)
                 except socket.error as err:
-                    print(f'\tSocket error: {err}')
+                    if 'EOF occurred in violation of protocol' in str(err):
+                        print(f'\tClosing connection...')
+                    else:
+                        print(f'\tSocket error: {err}')
 
     def close_server_socket(self) -> None:
         self.server_socket.close()
@@ -117,10 +120,14 @@ class TcpServer:
                 self._send_response('Access denied')
                 return
             elif auth_status == 0:
-                self._send_response('Access granted', False)
-            elif auth_status == 1:
                 self._send_response('Token created successfully')
                 return
+            elif auth_status == 1:
+                self._send_response('Token valid')
+                return
+            elif auth_status == 2:
+                self._send_response('Access granted', False)
+
 
             # receive header from the client
             header = self.secure_socket.recv(self.tcp_buffer_size).decode()
@@ -178,9 +185,9 @@ class TcpServer:
             # send token to the client
             self._send_response(token, False)
 
-            return 1
+            return 0
 
-        elif action == 'AUTHORIZE':
+        elif action == 'VERIFY TOKEN' or action == 'AUTHORIZE':
             provided_token = auth
 
             if provided_token not in self.access_tokens:
@@ -197,7 +204,7 @@ class TcpServer:
             if datetime.now(UTC) > token_metadata['expiration']:
                 return -1
 
-            return 0
+            return 1 if action == 'VERIFY TOKEN' else 2
 
     def _send_response(self, response: str, print_response: bool = True) -> None:
         response_str = str(response)

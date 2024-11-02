@@ -94,18 +94,19 @@ def menu() -> None:
             print("Authentication failure")
             server_response = client.get_auth_token()
             print(server_response)
-    else:
-        client.close_connection()
     print("Authenticated successfully!")
 
     while True:
-        client = TcpClient()
         # if token_check(config, client):
         #     print("Connected to the server!")
         print(f'Hello {config["username"]}')
+
         input()  # press enter to show the menu
         print_menu()
-        client.verify_token()
+
+        client = TcpClient()
+        client.send_auth_token()
+
         match input():
             case '1': #dziala
                 print('--------------------------------------------')
