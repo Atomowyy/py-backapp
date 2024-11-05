@@ -108,14 +108,18 @@ def menu() -> None:
         client.send_auth_token()
 
         match input():
-            case '1': #dziala
+            case '1': #dziala - wysyłanie pliku
                 print('--------------------------------------------')
                 path: str = input('Specify path to the file: ')
                 response = client.store(path , f'{config['username']}')
                 print(response)
                 print('--------------------------------------------')
-            case '2':
+            case '2': #dziala - wysyłanie katalogu
+                print('--------------------------------------------')
                 print('send whole directories to the server')
+                path: str = input('Specify path to the directory: ')
+                response = client.store(path, f'{config['username']}')
+                print('--------------------------------------------')
             case '3':
                 print('download files from the server')
             case '4':
@@ -206,7 +210,6 @@ except socket_error as err:
 
 
 
-#response = client.store('../LICENSE', 'test/test2/')  # file transfer
 # response = client.store('../screenshots', 'test/folder')  # dir transfer
 
 # response = client.get('/test/test2/LICENSE', './')  # get file
