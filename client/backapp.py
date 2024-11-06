@@ -133,11 +133,19 @@ def menu() -> None:
                 ls, response = client.list_data(f'/{config['username']}')  # list data
                 print(ls)
             case '6':
+                client.close_connection()
                 print('synchronize data')
-            case '7':
-                print('delete selected uploaded files')
+            case '7': #usuwanie
+                print('--------------------------------------------')
+                path: str = input('Specify path to the file or folder that you want to delete: ')
+                response = client.delete(f'/{config['username']}/{path}')
+                print(response)
+                print('--------------------------------------------')
             case '8':
-                print('delete all of your uploaded files')
+                print('--------------------------------------------')
+                response = client.delete(f'/{config['username']}/')
+                print('--------------------------------------------')
+                print(response)
             case '9':
                 exit()
             case _:
@@ -206,16 +214,8 @@ except socket_error as err:
     print(socket_error)
     exit(-1)
 
-# response = client.get('/test/test2/LICENSE', './')  # get file
-# response = client.get('/test', './', True)  # get dir
-
-# ls, response = client.list_data('/test/folder/screenshots')  # list data
-# print(ls)
 
 # print(f'local modification date: {datetime.fromtimestamp(os.path.getmtime("../screenshots/docker_1.png"))}')
 # mod_date, response = client.get_modification_date('/test/folder/screenshots/docker_1.png')  # get modification date
 # print(mod_date)
 
-# response = client.delete('/')  # delete all data on the server
-
-# print(response)

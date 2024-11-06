@@ -112,8 +112,11 @@ class TcpClient:
             self._send_command(ServerActions.get_file(server_path))
 
         socket_file = self.secure_socket.makefile('rb')
-        with tarfile.open(fileobj=socket_file, mode='r|') as tar:
-            tar.extractall(extract_path, filter='tar')
+        try:
+            with tarfile.open(fileobj=socket_file, mode='r|') as tar:
+                tar.extractall(extract_path, filter='tar')
+        except tarfile.TarError:
+            return 'Invalid Path'
 
         return self._get_response()
 
