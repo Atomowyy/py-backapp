@@ -70,21 +70,15 @@ def print_menu() -> None:
 def menu() -> None:
     # verifying JSON
     config: json = json.load(open('config.json', 'r'))
-    reload_needed = False
 
     if not server_check(config):
         print('There is no specified server, please enter valid IP address and port number')
         server_set(config)
-        reload_needed = True
     if not user_check(config):
         print("There is no user logged in.")
         user_set(config)
-        reload_needed = True
 
-    if reload_needed:
-        # replace current process with the new instance of itself
-        os.execv(sys.executable, [sys.executable] + sys.argv)
-
+    TcpClient.load_config()
     client = TcpClient()
     server_response = client.verify_token()
     if server_response == -1:
@@ -156,6 +150,7 @@ def cli(args) -> None:
         print('There is no username set, run with -u <username>')
         exit()
 
+    TcpClient.load_config()
     client = TcpClient()
     if args.verify:
         server_response = client.verify_token()

@@ -9,17 +9,25 @@ from datetime import datetime
 
 
 class TcpClient:
-    # load config from config.json
-    config = json.load(open('config.json', 'r'))
+    config = None
+    server = None
+    port = None
+    username = None
+    token = None
 
-    keys_to_check = {'server', 'port', 'username', 'token'}
-    if not keys_to_check.issubset(config.keys()):
-        raise Exception('Invalid client config file')
+    @classmethod
+    def load_config(cls):
+        # load config from config.json
+        TcpClient.config = json.load(open('config.json', 'r'))
 
-    server = config['server']
-    port = config['port']
-    username = config['username']
-    token = config['token']
+        keys_to_check = {'server', 'port', 'username', 'token'}
+        if not keys_to_check.issubset(TcpClient.config.keys()):
+            raise Exception('Invalid client config file')
+
+        TcpClient.server = TcpClient.config['server']
+        TcpClient.port = TcpClient.config['port']
+        TcpClient.username = TcpClient.config['username']
+        TcpClient.token = TcpClient.config['token']
 
     def __init__(self, verify_certificate: bool = False):
         # create client socket
