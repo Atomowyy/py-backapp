@@ -102,23 +102,33 @@ def menu() -> None:
         client.send_auth_token()
 
         match input():
-            case '1': #dziala - wysyłanie pliku
+            case '1':  # dziala - wysyłanie pliku
                 print('--------------------------------------------')
                 path: str = input('Specify path to the file: ')
-                response = client.store(path , f'{config['username']}')
+                response = client.store(path, f'{config['username']}')
                 print(response)
                 print('--------------------------------------------')
-            case '2': #dziala - wysyłanie katalogu
+            case '2':  # dziala - wysyłanie katalogu
                 print('--------------------------------------------')
-                print('send whole directories to the server')
                 path: str = input('Specify path to the directory: ')
                 response = client.store(path, f'{config['username']}')
+                print(response)
                 print('--------------------------------------------')
-            case '3':
-                print('download files from the server')
-            case '4':
-                print('download directories from the server')
-            case '5': #dziala
+            case '3':  # - pobieranie pliku - działa, do poprawy, dodać try
+                print('--------------------------------------------')
+                filename: str = input(
+                    'Specify path to the file that you want to download: ')
+                response = client.get(f'/{config['username']}/{filename}', './Downloads')
+                print(response)
+                print('--------------------------------------------')
+            case '4':  # pobieranie katalogu - dodać try
+                print('--------------------------------------------')
+                dirname: str = input(
+                    'Specify path to the directory that you want to download: ')
+                response = client.get(f'/{config['username']}/{dirname}', './Downloads', True)
+                print(response)
+                print('--------------------------------------------')
+            case '5':  # dziala
                 print('list your uploaded files')
                 ls, response = client.list_data(f'/{config['username']}')  # list data
                 print(ls)
@@ -136,7 +146,7 @@ def menu() -> None:
 
 
 def cli(args) -> None:
-    #print(args)
+    # print(args)
     config: json = json.load(open('config.json', 'r'))
     if args.username:
         config['username'] = args.username
@@ -165,16 +175,11 @@ def cli(args) -> None:
     exit()
 
 
-
-
-
-
-
-#reading arg
+# reading arg
 parser = argparse.ArgumentParser(
-                    prog='py-backapp',
-                    description='This is the client side of py-backapp',
-                    epilog='CLI mode is default, if you want to use interactive mode, specify the flag')
+    prog='py-backapp',
+    description='This is the client side of py-backapp',
+    epilog='CLI mode is default, if you want to use interactive mode, specify the flag')
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-u', '--username')
 parser.add_argument('-p', '--password', action='store_true')
@@ -201,12 +206,6 @@ except socket_error as err:
     print(socket_error)
     exit(-1)
 
-
-
-
-
-# response = client.store('../screenshots', 'test/folder')  # dir transfer
-
 # response = client.get('/test/test2/LICENSE', './')  # get file
 # response = client.get('/test', './', True)  # get dir
 
@@ -219,4 +218,4 @@ except socket_error as err:
 
 # response = client.delete('/')  # delete all data on the server
 
-#print(response)
+# print(response)
