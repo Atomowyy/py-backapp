@@ -133,9 +133,42 @@ def menu() -> None:
                 ls, response = client.list_data(f'/{config['username']}')  # list data
                 print(ls)
             case '6':
-                client.close_connection()
-                print('synchronize data')
-            case '7': #usuwanie
+                path = input('Specify path to the file/directory that you want to synchronise: ')
+                filename = path.split('/')[-1]
+                local_path = path.replace(filename, '')
+                ls, response = client.list_data(f'/{config['username']}')  # list data
+                if filename in ls:
+                    print(
+                        f'Local modification date: {datetime.fromtimestamp(os.path.getmtime(path))}')
+                    client = TcpClient()
+                    client.send_auth_token()
+                    mod_date, response = client.get_modification_date(f'/{config['username']}/{filename}')
+                    print(f'Remote modification date: {mod_date}')
+
+                    if datetime.fromtimestamp(os.path.getmtime(path)) == mod_date:
+                        print('Files are up to date!')
+                    elif datetime.fromtimestamp(os.path.getmtime(path)) > mod_date:
+                        print('Remote file is older than local')
+                        decision = input('Do you want to upload current version to the server? [y]: ')
+                        if decision.upper() == 'Y':
+                            print('Sending files to the server...')
+                            client = TcpClient()
+                            client.send_auth_token()
+                            response = client.store(path, f'{config['username']}')
+                            print(response)
+                    elif datetime.fromtimestamp(os.path.getmtime(path)) < mod_date:
+                        print('Local file is older than remote')
+                        decision = input('Do you want to download current version from the server? [y]: ')
+                        if decision.upper() == 'Y':
+                            print('Downloading files from the server...')
+                            client = TcpClient()
+                            client.send_auth_token()
+                            response = client.get(f'/{config['username']}/{filename}', local_path)
+                            print(response)
+                else:
+                    print('Specified file/directory was not found on the server')
+                exit()
+            case '7':  # usuwanie
                 print('--------------------------------------------')
                 path: str = input('Specify path to the file or folder that you want to delete: ')
                 response = client.delete(f'/{config['username']}/{path}')
@@ -214,8 +247,6 @@ except socket_error as err:
     print(socket_error)
     exit(-1)
 
-
 # print(f'local modification date: {datetime.fromtimestamp(os.path.getmtime("../screenshots/docker_1.png"))}')
 # mod_date, response = client.get_modification_date('/test/folder/screenshots/docker_1.png')  # get modification date
 # print(mod_date)
-
