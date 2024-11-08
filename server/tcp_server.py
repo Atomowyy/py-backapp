@@ -128,7 +128,6 @@ class TcpServer:
             elif auth_status == 2:
                 self._send_response('Access granted', False)
 
-
             # receive header from the client
             header = self.secure_socket.recv(self.tcp_buffer_size).decode()
 
@@ -213,34 +212,30 @@ class TcpServer:
             print('\t' + response_str)
 
     def _handle_server_action(self, action: str, argument: str) -> str:
+        path = argument if (argument[0] == '/') else ('/' + argument)
+
         response = 'Action Accepted'  # default response
         match action:
             case 'STORE':
-                result = self._handle_storing(argument)
+                result = self._handle_storing(path)
                 if result == -1:
                     response = 'Data extraction failed'
-            case 'GET FILE':
-                result = self._handle_file_retrieving(argument)
-                if result == -1:
-                    response = 'Invalid Path'
-                if result == 1:
-                    response = 'Data archiving failed'
-            case 'GET DIR':
-                result = self._handle_dir_retrieving(argument)
+            case 'GET':
+                result = self._handle_retrieving(path)
                 if result == -1:
                     response = 'Invalid Path'
                 if result == 1:
                     response = 'Data archiving failed'
             case 'GET MODIFICATION DATE':
-                result = self._handle_getting_modification_date(argument)
+                result = self._handle_getting_modification_date(path)
                 if result == -1:
                     response = 'Invalid Path'
             case 'DELETE DATA':
-                result = self._handle_deleting(argument)
+                result = self._handle_deleting(path)
                 if result == -1:
                     response = 'Invalid Path'
             case 'LIST DATA':
-                result = self._handle_listing(argument)
+                result = self._handle_listing(path)
                 if result == -1:
                     response = 'Invalid Path'
             case _:
@@ -249,10 +244,6 @@ class TcpServer:
         return response
 
     def _handle_storing(self, save_path: str) -> int:
-        # add '/' to the beginning if necessary
-        if save_path[0] != '/':
-            save_path = '/' + save_path
-
         full_save_path = self.data_dir + save_path
 
         # create directories if they don't exist
@@ -261,7 +252,7 @@ class TcpServer:
         socket_file = self.secure_socket.makefile('rb')
         try:
             with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
-                socket_tar.extractall(full_save_path, filter='tar')
+                socket_tar.extractall(full_save_path, filter='fully_trusted')
                 return 0
         except tarfile.TarError:
             return -1
@@ -275,20 +266,11 @@ class TcpServer:
         except tarfile.TarError:
             return 1
 
-    def _handle_file_retrieving(self, file_path: str) -> int:
-        # print(f'\tSending file {file_path}')
-        full_path = self.data_dir + file_path
+    def _handle_retrieving(self, path: str) -> int:
+        # print(f'\tSending file/dir {path}')
+        full_path = self.data_dir + path
 
-        if not os.path.isfile(full_path):
-            return -1
-
-        return self._send_tar(full_path)
-
-    def _handle_dir_retrieving(self, dir_path: str) -> int:
-        # print(f'\tSending dir {dir_path}')
-        full_path = self.data_dir + dir_path
-
-        if not os.path.isdir(full_path):
+        if not os.path.exists(full_path):
             return -1
 
         return self._send_tar(full_path)
@@ -304,7 +286,7 @@ class TcpServer:
         modification_time = os.path.getmtime(full_path)
 
         # convert it to string & human-readable format
-        modification_date = str(datetime.fromtimestamp(modification_time))
+        modification_date = str(datetime.fromtimestamp(modification_time, UTC))
         print(f'\tModification date is {modification_date}')
 
         self._send_response(modification_date, False)
