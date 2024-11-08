@@ -85,7 +85,7 @@ class TcpClient:
             return -1
 
         # if authorization was successful -> you get a token
-        self.config['token'] = response
+        TcpClient.config['token'] = response
         TcpClient.token = response
 
         # dump config to config.json
@@ -98,23 +98,21 @@ class TcpClient:
         self._send_command(ServerActions.store(server_path))
 
         socket_file = self.secure_socket.makefile(mode='wb')
-        with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
-            socket_tar.add(path, arcname=os.path.basename(path))
-        socket_file.flush()
-        socket_file.close()
+        try:
+            with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
+                socket_tar.add(path, arcname=os.path.basename(path))
+        except tarfile.TarError:
+            return 'Invalid path'
 
         return self._get_response()
 
-    def get(self, server_path: str, extract_path: str, is_dir: bool = False) -> str:
-        if is_dir:
-            self._send_command(ServerActions.get_dir(server_path))
-        else:
-            self._send_command(ServerActions.get_file(server_path))
+    def get(self, server_path: str, extract_path: str) -> str:
+        self._send_command(ServerActions.get(server_path))
 
         socket_file = self.secure_socket.makefile('rb')
         try:
-            with tarfile.open(fileobj=socket_file, mode='r|') as tar:
-                tar.extractall(extract_path, filter='tar')
+            with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
+                socket_tar.extractall(extract_path, filter='tar')
         except tarfile.TarError:
             return 'Invalid Path'
 
@@ -124,13 +122,21 @@ class TcpClient:
         self._send_command(ServerActions.list_data(server_path))
 
         listing = self._get_response()
+
+        if listing == 'Invalid path':
+            return '', listing
+
         response = self._get_response()
         return listing, response
 
     def get_modification_date(self, server_path: str) -> tuple[datetime, str]:
         self._send_command(ServerActions.get_modification_date(server_path))
 
-        modification_date = datetime.fromisoformat(self._get_response())
+        tmp = self._get_response()
+        if tmp == 'Invalid path':
+            return datetime(1800, 1, 1), tmp
+
+        modification_date = datetime.fromisoformat(tmp)
         response = self._get_response()
         return modification_date, response
 
@@ -160,12 +166,8 @@ class ServerActions:
         return ('STORE' + cls.spacer + path).encode()
 
     @classmethod
-    def get_file(cls, file_path: str) -> bytes:
-        return ('GET FILE' + cls.spacer + file_path).encode()
-
-    @classmethod
-    def get_dir(cls, dir_path: str) -> bytes:
-        return ('GET DIR' + cls.spacer + dir_path).encode()
+    def get(cls, path: str) -> bytes:
+        return ('GET' + cls.spacer + path).encode()
 
     @classmethod
     def get_modification_date(cls, path: str) -> bytes:
