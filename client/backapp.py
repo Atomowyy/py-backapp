@@ -106,25 +106,24 @@ def menu() -> None:
                 ls, response = client.list_data(f'/{config['username']}')  # list data
                 print(ls)
             case '5':
-                local_path = os.path.abspath(
-                    './' + input('Specify local path to the file that you want to synchronise: '))
-                remote_path = input('Specify remote path to the file that you want to synchronise: ')
-
+                local_path = input('Specify local path to the file that you want to synchronise: ')
                 if not os.path.isfile(local_path):
                     print('File does not exist')
                     client.close_connection()
                     continue
 
-                filename = os.path.basename(local_path)
-                local_mod_date = datetime.fromtimestamp(os.path.getmtime(local_path), UTC)
+                remote_path = input('Specify remote path to the file that you want to synchronise: ')
 
                 ls_, response = client.list_data(
                     f'/{config['username']}/{remote_path.replace(os.path.basename(remote_path), '')}'
                 )
 
-                if response == 'Invalid path':
-                    print('Invalid remote path')
+                if response == 'Invalid Path':
+                    print('Specified file/directory was not found on the server')
                     continue
+
+                filename = os.path.basename(local_path)
+                local_mod_date = datetime.fromtimestamp(os.path.getmtime(local_path), UTC)
 
                 ls = ls_.split('  ')
 
@@ -133,7 +132,9 @@ def menu() -> None:
                         f'Local modification date: {local_mod_date}')
                     client = TcpClient()
                     client.send_auth_token()
-                    remote_mod_date, response = client.get_modification_date(f'/{config['username']}/{filename}')
+                    remote_mod_date, response = client.get_modification_date(
+                        f'/{config['username']}/{remote_path}'
+                    )
                     print(f'Remote modification date: {remote_mod_date}')
 
                     if local_mod_date == remote_mod_date:
@@ -153,7 +154,6 @@ def menu() -> None:
                     elif local_mod_date < remote_mod_date:
                         print('Local file is older than remote')
                         decision = input('Do you want to download current version from the server? [n/y]: ')
-                        print(decision.upper())
                         if decision.upper() in ('Y', 'YES'):
                             print('Downloading files from the server...')
                             client = TcpClient()
@@ -177,8 +177,8 @@ def menu() -> None:
 
                 ls_, response = client.list_data(f'/{config['username']}/{remote_path}')
 
-                if response == 'Invalid path':
-                    print('Invalid remote path')
+                if response == 'Invalid Path':
+                    print('Specified file/directory was not found on the server')
                     continue
 
                 local_ls = os.listdir(local_path)

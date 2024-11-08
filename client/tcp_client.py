@@ -102,7 +102,7 @@ class TcpClient:
             with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
                 socket_tar.add(path, arcname=os.path.basename(path))
         except tarfile.TarError:
-            return 'Invalid path'
+            return 'Invalid Path'
 
         return self._get_response()
 
@@ -123,7 +123,7 @@ class TcpClient:
 
         listing = self._get_response()
 
-        if listing == 'Invalid path':
+        if listing == 'Invalid Path':
             return '', listing
 
         response = self._get_response()
