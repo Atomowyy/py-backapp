@@ -16,7 +16,7 @@ class TcpClient:
     token = None
 
     @classmethod
-    def load_config(cls):
+    def load_config(cls) -> None:
         # load config from config.json
         TcpClient.config = json.load(open('config.json', 'r'))
 
@@ -60,7 +60,7 @@ class TcpClient:
         self._send_command(ServerActions.authorize(self.username, self.token))
         response = self._get_response()
 
-        if response == 'Access denied':
+        if response == 'Access Denied':
             self.secure_socket.close()
             return -1
 
@@ -70,7 +70,7 @@ class TcpClient:
         self._send_command(ServerActions.verify_token(self.username, self.token))
         response = self._get_response()
 
-        if response == 'Access denied':
+        if response == 'Access Denied':
             self.secure_socket.close()
             return -1
 
@@ -81,7 +81,7 @@ class TcpClient:
         self._send_command(ServerActions.get_token(self.username, password))
         response = self._get_response()
 
-        if response == 'Access denied':
+        if response == 'Access Denied':
             return -1
 
         # if authorization was successful -> you get a token
@@ -133,7 +133,7 @@ class TcpClient:
         self._send_command(ServerActions.get_modification_date(server_path))
 
         tmp = self._get_response()
-        if tmp == 'Invalid path':
+        if tmp == 'Invalid Path':
             return datetime(1800, 1, 1), tmp
 
         modification_date = datetime.fromisoformat(tmp)

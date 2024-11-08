@@ -117,16 +117,16 @@ class TcpServer:
             auth_status = self._handle_authorisation_and_token_creation(auth)
 
             if auth_status == -1:
-                self._send_response('Access denied')
+                self._send_response('Access Denied')
                 return
             elif auth_status == 0:
-                self._send_response('Token created successfully')
+                self._send_response('Token Created Successfully')
                 return
             elif auth_status == 1:
-                self._send_response('Token valid')
+                self._send_response('Token Valid')
                 return
             elif auth_status == 2:
-                self._send_response('Access granted', False)
+                self._send_response('Access Granted', False)
 
             # receive header from the client
             header = self.secure_socket.recv(self.tcp_buffer_size).decode()
@@ -219,13 +219,13 @@ class TcpServer:
             case 'STORE':
                 result = self._handle_storing(path)
                 if result == -1:
-                    response = 'Data extraction failed'
+                    response = 'Data Extraction Failed'
             case 'GET':
                 result = self._handle_retrieving(path)
                 if result == -1:
                     response = 'Invalid Path'
                 if result == 1:
-                    response = 'Data archiving failed'
+                    response = 'Data Archiving Failed'
             case 'GET MODIFICATION DATE':
                 result = self._handle_getting_modification_date(path)
                 if result == -1:
@@ -239,7 +239,7 @@ class TcpServer:
                 if result == -1:
                     response = 'Invalid Path'
             case _:
-                response = 'Action Denied!'
+                response = 'Action Denied'
 
         return response
 
@@ -252,7 +252,7 @@ class TcpServer:
         socket_file = self.secure_socket.makefile('rb')
         try:
             with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
-                socket_tar.extractall(full_save_path, filter='fully_trusted')
+                socket_tar.extractall(full_save_path, filter='tar')
                 return 0
         except tarfile.TarError:
             return -1
