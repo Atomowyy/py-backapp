@@ -1,6 +1,7 @@
 import socket
 import ssl
 import select
+import threading
 
 import os
 import shutil
@@ -95,7 +96,11 @@ class TcpServer:
             for s in readable:
                 try:
                     client_socket, client_address = s.accept()
-                    self._handle_connection(client_socket, client_address)
+                    # start a new thread for each client connection
+                    client_thread = threading.Thread(
+                        target=self._handle_connection, args=(client_socket, client_address)
+                    )
+                    client_thread.start()
                 except socket.error as err:
                     if 'EOF occurred in violation of protocol' in str(err):
                         print(f'\tClosing connection...')
