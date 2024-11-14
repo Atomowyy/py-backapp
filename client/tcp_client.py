@@ -1,13 +1,14 @@
 import socket
 import ssl
 import json
+import sys
 
 import tarfile
 import os
 
 from datetime import datetime
 
-from backapp_helpers import get_key
+from backapp_helpers import get_key_unix, get_key_windows
 
 
 class TcpClient:
@@ -84,8 +85,8 @@ class TcpClient:
         try:
             # get password and dont display it in console
             while True:
-                key = get_key()
-                if key == '\n':
+                key = get_key_windows().decode(errors='replace') if sys.platform == 'win32' else get_key_unix()
+                if key == '\r' or key == '\n':
                     break
                 password += key
         except KeyboardInterrupt:

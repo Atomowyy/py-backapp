@@ -24,14 +24,22 @@ menu = [
 ]
 
 
-def get_arrow_key() -> str:
+def get_arrow_key_unix() -> str:
     # arrow up -> \033[A
     # arrow down -> \033[A
-
-    key = get_key()  # Read the first character
+    key = get_key_unix()  # Read the first character
     if key == '\033':
-        key += get_key()  # '[' character
-        key += get_key()  # the arrow key code
+        key += get_key_unix()  # '[' character
+        key += get_key_unix()  # the arrow key code
+    return key
+
+
+def get_arrow_key_windows() -> bytes:
+    # arrow up -> b'\xe0H'
+    # arrow down -> b'\xe0P'
+    key = get_key_windows()
+    if key == b'\xe0':
+        key += get_key_windows()
     return key
 
 
@@ -56,10 +64,10 @@ def print_menu(selected_index) -> None:
 
 def wait_for_user_input() -> None:
     print('\nPress any key to continue...')
-    get_key()
+    get_key_windows() if sys.platform == 'win32' else get_arrow_key_windows()
 
 
-def handle_action(action_idx, username):
+def handle_action(action_idx):
     client = TcpClient()
     client.send_auth_token()
 
@@ -147,8 +155,6 @@ def interactive_mode() -> None:
 
     TcpClient.load_config()  # load config.json into TcpClient
 
-    username = TcpClient.username
-
     client = TcpClient()
     server_response = client.verify_token()
 
@@ -161,29 +167,32 @@ def interactive_mode() -> None:
 
     ##############################################
     #  user authenticated
-    print(f'\33[34mHello {username}\33[0m')
+    print(f'\33[34mHello {TcpClient.username}\33[0m')
     wait_for_user_input()
 
     current_index = 0
     while True:
         print_menu(current_index)
 
-        key = get_arrow_key()
+        if sys.platform == 'win32':
+            key = get_arrow_key_windows()
+        else:
+            key = get_arrow_key_unix()
 
-        if key in ('\033[A', 'w'):  # up arrow / w
+        if key in (b'\xe0H', '\033[A', 'w'):  # up arrow / w
             current_index -= 1
             current_index %= len(menu)
-        elif key in ('\033[B', 's'):  # down arrow / s
+        elif key in (b'\xe0P', '\033[B', 's'):  # down arrow / s
             current_index += 1
             current_index %= len(menu)
-        elif key in [str(x) for x in range(1, len(menu) + 1)]:
+        elif bytes(key) in [str(x).encode() for x in range(1, len(menu) + 1)]:
             current_index = int(key) - 1
-        elif key == '\n':  # Enter - option selected
+        elif key == b'\r' or key == '\n':  # Enter - option selected ('\r' - windows)
             if current_index == len(menu) - 1:
                 exit(0)
 
             case_spacer()
-            handle_action(current_index, username)
+            handle_action(current_index)
             case_spacer()
 
             wait_for_user_input()

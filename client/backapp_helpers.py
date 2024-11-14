@@ -1,9 +1,13 @@
 import sys
-import termios
 import json
 
+if sys.platform == 'win32':
+    import msvcrt
+else:
+    import termios
 
-def get_key() -> str:
+
+def get_key_unix() -> str:
     """Read a single character from the keyboard."""
     fd = sys.stdin.fileno()  # get file descriptor associated with file-like object (stdin, stdout, stderr)
     old_settings = termios.tcgetattr(fd)  # Get current terminal settings
@@ -19,6 +23,14 @@ def get_key() -> str:
         # Restore terminal settings
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
+
+
+def get_key_windows() -> bytes:
+    key = msvcrt.getch()
+    if key == b'\x03':  # ctrl + c
+        print('Exiting...')
+        exit()
+    return key
 
 
 def get_input(message):
