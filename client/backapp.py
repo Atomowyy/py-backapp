@@ -1,12 +1,12 @@
 from socket import error as socket_error
-
 from backapp_interactive import interactive_mode
-from tcp_client import TcpClient
-from datetime import datetime, UTC
-import os
 import argparse
 
 from backapp_helpers import *
+
+from tcp_client import TcpClient
+import os
+from datetime import datetime, UTC
 
 
 def print_menu() -> None:
@@ -399,7 +399,7 @@ def cli(args) -> None:
 parser = argparse.ArgumentParser(
     prog='py-backapp',
     description='This is the client side of py-backapp',
-    epilog='CLI mode is default, if you want to use interactive mode, specify the flag')
+    epilog='CLI mode is default, if you want to use interactive mode, specify the -i flag')
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-u', '--username')
 parser.add_argument('-p', '--password', action='store_true')
@@ -418,8 +418,8 @@ args = parser.parse_args()
 
 try:
     if args.interactive:
-        menu()
-        # interactive_mode()
+        # menu()
+        interactive_mode()
     else:
         cli(args)
 except KeyboardInterrupt:
