@@ -57,6 +57,9 @@ class TcpServer:
         self.context = None
         self.secure_socket = None
 
+        self.current_user = None
+        self.current_user_data_dir = None
+
         self.users = json.load(open('users_db.json', 'r'))  # load users db
         self.access_tokens = dict()
 
@@ -138,7 +141,7 @@ class TcpServer:
 
             # unpack action and argument from header
             action, argument = header.split(self.spacer)
-            print(f'\tAction: {action}, argument: {argument}')
+            print(f'\tUser: {self.current_user}, action: {action}, argument: {argument}')
 
             if '..' in argument:  # moving outside data_dir
                 raise ValueError('".." not allowed in argument (path to resource)')
@@ -163,6 +166,8 @@ class TcpServer:
 
         if user not in self.users:
             return -1
+
+        self.current_user = user
 
         if action == 'GET TOKEN':
             # authenticate user
@@ -208,7 +213,11 @@ class TcpServer:
             if datetime.now(UTC) > token_metadata['expiration']:
                 return -1
 
-            return 1 if action == 'VERIFY TOKEN' else 2
+            if action == 'VERIFY TOKEN':
+                return 1
+
+            self.current_user_data_dir = self.data_dir + '/' + user  # each user gets their own data directory
+            return 2
 
     def _send_response(self, response: str, print_response: bool = True) -> None:
         response_str = str(response)
@@ -217,7 +226,10 @@ class TcpServer:
             print('\t' + response_str)
 
     def _handle_server_action(self, action: str, argument: str) -> str:
-        path = argument if (argument[0] == '/') else ('/' + argument)
+        if argument == '':
+            path = '/'
+        else:
+            path = argument if (argument[0] == '/') else ('/' + argument)
 
         response = 'Action Accepted'  # default response
         match action:
@@ -249,7 +261,7 @@ class TcpServer:
         return response
 
     def _handle_storing(self, save_path: str) -> int:
-        full_save_path = self.data_dir + save_path
+        full_save_path = self.current_user_data_dir + save_path
 
         # create directories if they don't exist
         os.makedirs(full_save_path, exist_ok=True)
@@ -273,7 +285,7 @@ class TcpServer:
 
     def _handle_retrieving(self, path: str) -> int:
         # print(f'\tSending file/dir {path}')
-        full_path = self.data_dir + path
+        full_path = self.current_user_data_dir + path
 
         if not os.path.exists(full_path):
             return -1
@@ -282,7 +294,7 @@ class TcpServer:
 
     def _handle_getting_modification_date(self, path: str) -> int:
         # print(f'\tSending modification date of {path}')
-        full_path = self.data_dir + path
+        full_path = self.current_user_data_dir + path
 
         if not os.path.exists(full_path):
             return -1
@@ -300,7 +312,7 @@ class TcpServer:
 
     def _handle_deleting(self, path: str) -> int:
         # print(f'\tDeleting data in {path}')
-        full_path = self.data_dir + path
+        full_path = self.current_user_data_dir + path
 
         if not os.path.exists(full_path):
             return -1
@@ -314,7 +326,7 @@ class TcpServer:
 
     def _handle_listing(self, path: str) -> int:
         # print(f'\tListing data in {path}')
-        full_path = self.data_dir + path
+        full_path = self.current_user_data_dir + path
 
         if not os.path.exists(full_path):
             return -1
