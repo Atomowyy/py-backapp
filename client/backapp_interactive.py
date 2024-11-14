@@ -64,7 +64,7 @@ def print_menu(selected_index) -> None:
 
 def wait_for_user_input() -> None:
     print('\nPress any key to continue...')
-    get_key_windows() if sys.platform == 'win32' else get_arrow_key_windows()
+    get_key_windows() if sys.platform == 'win32' else get_arrow_key_unix()
 
 
 def handle_action(action_idx):
@@ -74,12 +74,18 @@ def handle_action(action_idx):
     match action_idx:
         case 0:  # store file
             local_path: str = get_input('Local file path: ')
-            remote_path: str = get_input('Remote file path: ')
+            if not file_exists(local_path):
+                client.close_connection()
+                return
+            remote_path: str = get_input('Remote file path [default: /]: ')
             response = client.store(local_path, remote_path)
             print(response)
         case 1:  # store dir
             local_path: str = get_input('Local dir path: ')
-            remote_path: str = get_input('Remote dir path: ')
+            if not dir_exists(local_path):
+                client.close_connection()
+                return
+            remote_path: str = get_input('Remote dir path [default: /]: ')
             response = client.store(local_path, remote_path)
             print(response)
         case 2:  # download file/dir
@@ -99,7 +105,7 @@ def handle_action(action_idx):
                 client.close_connection()
                 return
 
-            remote_path = get_input('Specify remote file path: ')
+            remote_path = get_input('Remote file path: ')
 
             ls_, response = client.list_data(
                 f'{remote_path.replace(os.path.basename(remote_path), '')}'
@@ -117,7 +123,7 @@ def handle_action(action_idx):
                 client.close_connection()
                 return
 
-            remote_path = get_input('Remote directory path: ')
+            remote_path = get_input('Remote directory path: [default: /]')
 
             ls_, response = client.list_data(f'{remote_path}')
 
@@ -129,11 +135,19 @@ def handle_action(action_idx):
 
         case 6:  # deleting
             remote_path: str = get_input('Remote path: ')
+            if remote_path == '':
+                client.close_connection()
+                print('\33[33mWrong remote path\33[0m')
+                return
             response = client.delete(remote_path)
             print(response)
         case 7:  # delete all user data
-            response = client.delete('/')
-            print(response)
+            decision = get_input('Are you sure you want to delete all data? [n/y]: ')
+            if decision.upper() in ('Y', 'YES'):
+                response = client.delete('/')
+                print(response)
+            else:
+                print('\33[33mAborting...\33[0m')
         case 8:  # exit
             exit()
         case _:  # default
@@ -185,7 +199,7 @@ def interactive_mode() -> None:
         elif key in (b'\xe0P', b's', '\033[B', 's'):  # down arrow / s
             current_index += 1
             current_index %= len(menu)
-        elif bytes(key) in [str(x).encode() for x in range(1, len(menu) + 1)]:
+        elif key.encode(errors='replace') in [str(x).encode() for x in range(1, len(menu) + 1)]:
             current_index = int(key) - 1
         elif key == b'\r' or key == '\n':  # Enter - option selected ('\r' - windows)
             if current_index == len(menu) - 1:
