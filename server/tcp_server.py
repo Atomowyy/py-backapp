@@ -125,22 +125,35 @@ class TcpServer:
             auth_status = self._handle_authorisation_and_token_creation(auth)
 
             if auth_status == -1:
+                print(f'\tUser: {self.current_user}')
                 self._send_response('Access Denied')
                 return
             elif auth_status == 0:
+                print(f'\tUser: {self.current_user}, action: GET TOKEN')
                 self._send_response('Token Created Successfully')
                 return
             elif auth_status == 1:
+                print(f'\tUser: {self.current_user}, action: VERIFY TOKEN')
                 self._send_response('Token Valid')
                 return
             elif auth_status == 2:
+                print(f'\tUser: {self.current_user}, action: AUTHORIZE')
                 self._send_response('Access Granted', False)
 
             # receive header from the client
             header = self.secure_socket.recv(self.tcp_buffer_size).decode()
 
             # unpack action and argument from header
-            action, argument = header.split(self.spacer)
+            if self.spacer not in header:
+                raise ValueError('Invalid header')
+
+            tmp = header.split(self.spacer)
+            if len(tmp) != 2:
+                raise ValueError('Invalid header')
+
+            action, argument = tmp
+            del tmp
+
             print(f'\tUser: {self.current_user}, action: {action}, argument: {argument}')
 
             if '..' in argument:  # moving outside data_dir
@@ -152,8 +165,11 @@ class TcpServer:
             # send response to the client
             self._send_response(response)
         except ValueError as err:
-            self._send_response('Invalid Request')
             print(f'\tValueError: {err}')
+            try:
+                self._send_response('Invalid Request')
+            except socket.error as err2:
+                print(f"\tCouldn't send response, Socket error: {err2}")
 
         except socket.error as err:
             print(f'\tSocket error: {err}')
