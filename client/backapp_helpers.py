@@ -26,6 +26,14 @@ def get_key_unix() -> str:
     return ch
 
 
+def get_key_windows() -> bytes:
+    key = msvcrt.getch()
+    if key == b'\x03':  # ctrl + c
+        print('Exiting...')
+        exit()
+    return key
+
+
 def file_exists(file_path) -> bool:
     if not os.path.isfile(file_path):
         print('\33[33mFile does not exist\33[0m')
@@ -38,14 +46,6 @@ def dir_exists(dir_path) -> bool:
         print('\33[33mDirectory does not exist\33[0m')
         return False
     return True
-
-
-def get_key_windows() -> bytes:
-    key = msvcrt.getch()
-    if key == b'\x03':  # ctrl + c
-        print('Exiting...')
-        exit()
-    return key
 
 
 def get_input(message):
