@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 
@@ -23,6 +24,20 @@ def get_key_unix() -> str:
         # Restore terminal settings
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
+
+
+def file_exists(file_path) -> bool:
+    if not os.path.isfile(file_path):
+        print('\33[33mFile does not exist\33[0m')
+        return False
+    return True
+
+
+def dir_exists(dir_path) -> bool:
+    if not os.path.isdir(dir_path):
+        print('\33[33mDirectory does not exist\33[0m')
+        return False
+    return True
 
 
 def get_key_windows() -> bytes:

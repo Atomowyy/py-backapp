@@ -4,25 +4,18 @@ from tcp_client import TcpClient
 from backapp_helpers import get_input
 
 
-def file_exists(file_path) -> bool:
-    if not os.path.isfile(file_path):
-        print('\33[33mFile does not exist\33[0m')
-        return False
-    return True
-
-
-def dir_exists(dir_path) -> bool:
-    if not os.path.isdir(dir_path):
-        print('\33[33mDirectory does not exist\33[0m')
-        return False
-    return True
-
-
 def synchronize_file(local_path, remote_path, remote_ls_):
     filename = os.path.basename(local_path)
+    remote_filename = os.path.basename(remote_path)
+
+    if filename != remote_filename:
+        print('\33[33mLocal filename and remote filename do not match\33[0m')
+        return
+
     local_mod_date = datetime.fromtimestamp(os.path.getmtime(local_path), UTC)
 
     ls = remote_ls_.split('  ')
+    print(ls)
 
     if filename in ls:
         print(
