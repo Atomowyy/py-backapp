@@ -21,6 +21,12 @@ def get_key() -> str:
     return ch
 
 
+def get_input(message):
+    user_input = input(message + '\33[32m')
+    print('\33[0m', end='')  # reset text coloring
+    return user_input
+
+
 def load_config() -> json:
     return json.load(open('config.json', 'r'))
 
@@ -42,16 +48,14 @@ def dump_config(config):
 
 def server_set(config) -> None:
     print('\33[33mServer not specified, please enter valid server address and port number\33[0m')
-    config['server'] = str(input('Server address: \33[32m'))
-    config['port'] = str(input('\33[0mServer port: \33[32m'))
-    print('\33[0m', end='')  # reset text coloring
+    config['server'] = str(get_input('Server address: '))
+    config['port'] = str(get_input('Server port: '))
     dump_config(config)
 
 
 def user_set(config) -> None:
     print("\33[33mUsername not specified, please enter valid username\33[0m")
-    config['username'] = str(input('Username: \33[32m'))
-    print('\33[0m', end='')  # reset text coloring
+    config['username'] = str(get_input('Username: '))
     dump_config(config)
 
 ##############################################################
