@@ -89,7 +89,7 @@ def handle_action(action_idx):
             response = client.store(local_path, remote_path)
             print(response)
         case 2:  # download file/dir
-            remote_path: str = get_input('Remote path: ')
+            remote_path: str = get_input('Remote path [default: /]: ')
             user_path: str = get_input('Local dir path [default: ./Downloads]: ')
             local_path: str = './Downloads' if user_path == '' else user_path
             response = client.get(remote_path, local_path)
@@ -193,13 +193,16 @@ def interactive_mode() -> None:
         else:
             key = get_arrow_key_unix()
 
+        # bytes are for windows, strings are for unix
         if key in (b'\xe0H', b'w', '\033[A', 'w'):  # up arrow / w
             current_index -= 1
             current_index %= len(menu)
         elif key in (b'\xe0P', b's', '\033[B', 's'):  # down arrow / s
             current_index += 1
             current_index %= len(menu)
-        elif key.encode(errors='replace') in [str(x).encode() for x in range(1, len(menu) + 1)]:
+        elif key in [str(x).encode() for x in range(1, len(menu) + 1)]:
+            current_index = int(key) - 1
+        elif key in [str(x) for x in range(1, len(menu) + 1)]:
             current_index = int(key) - 1
         elif key == b'\r' or key == '\n':  # Enter - option selected ('\r' - windows)
             if current_index == len(menu) - 1:
