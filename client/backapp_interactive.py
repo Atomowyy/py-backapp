@@ -179,10 +179,10 @@ def interactive_mode() -> None:
         else:
             key = get_arrow_key_unix()
 
-        if key in (b'\xe0H', '\033[A', 'w'):  # up arrow / w
+        if key in (b'\xe0H', b'w', '\033[A', 'w'):  # up arrow / w
             current_index -= 1
             current_index %= len(menu)
-        elif key in (b'\xe0P', '\033[B', 's'):  # down arrow / s
+        elif key in (b'\xe0P', b's', '\033[B', 's'):  # down arrow / s
             current_index += 1
             current_index %= len(menu)
         elif bytes(key) in [str(x).encode() for x in range(1, len(menu) + 1)]:
