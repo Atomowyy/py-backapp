@@ -7,6 +7,8 @@ import os
 
 from datetime import datetime
 
+from backapp_helpers import get_key
+
 
 class TcpClient:
     config = None
@@ -77,8 +79,21 @@ class TcpClient:
         return 0
 
     def get_auth_token(self) -> int:
-        password = input(f'Password for {self.config["username"]}: ')
+        print(f'Password for {self.config["username"]}: ')
+        password = ''
+        try:
+            # get password and dont display it in console
+            while True:
+                key = get_key()
+                if key == '\n':
+                    break
+                password += key
+        except KeyboardInterrupt:
+            print('Exiting...')
+            exit(-1)
+
         self._send_command(ServerActions.get_token(self.username, password))
+        del password
         response = self._get_response()
 
         if response == 'Access Denied':
