@@ -1,38 +1,12 @@
 from socket import error as socket_error
+
+from backapp_interactive import interactive_mode
 from tcp_client import TcpClient
 from datetime import datetime, UTC
 import os
 import argparse
-import json
 
-
-def user_check(config: json) -> bool:
-    username = config['username']
-    if username == '':
-        return False
-    return True
-
-
-def server_check(config: json) -> bool:
-    server: str = config['server']
-    print(server)
-    if server == '':
-        return False
-    return True
-
-
-def server_set(config) -> None:
-    config['server'] = str(input('Server IP: '))
-    config['port'] = str(input('Server port: '))
-    with open('config.json', 'w') as cfg:
-        cfg.write(json.dumps(config, indent='\t'))
-    print('Server settings edited successfully!')
-
-
-def user_set(config) -> None:
-    config['username'] = str(input('Username: '))
-    with open('config.json', 'w') as cfg:
-        cfg.write(json.dumps(config, indent='\t'))
+from backapp_helpers import *
 
 
 def print_menu() -> None:
@@ -51,31 +25,29 @@ def menu() -> None:
     # verifying JSON
     config: json = json.load(open('config.json', 'r'))
 
+    username = config['username']
+
     if not server_check(config):
-        print('There is no specified server, please enter valid IP address and port number')
         server_set(config)
     if not user_check(config):
-        print("There is no user logged in.")
         user_set(config)
 
     TcpClient.load_config()
+
     client = TcpClient()
     server_response = client.verify_token()
+
     if server_response == -1:
-        print(server_response)
+        print('Token is invalid')
         while server_response == -1:
             client = TcpClient()
             print("Authentication failure")
             server_response = client.get_auth_token()
-            print(server_response)
-    print("Authenticated successfully!")
+    print("Authenticated successfully")
 
+    print(f'Hello {username}')
     while True:
-        # if token_check(config, client):
-        #     print("Connected to the server!")
-        print(f'Hello {config["username"]}')
-
-        input()  # press enter to show the menu
+        input('[Press enter to continue]')
         print_menu()
 
         client = TcpClient()
@@ -422,6 +394,7 @@ def cli(args) -> None:
         exit()
     exit()
 
+
 # reading arg
 parser = argparse.ArgumentParser(
     prog='py-backapp',
@@ -446,6 +419,7 @@ args = parser.parse_args()
 try:
     if args.interactive:
         menu()
+        # interactive_mode()
     else:
         cli(args)
 except KeyboardInterrupt:
@@ -454,7 +428,3 @@ except KeyboardInterrupt:
 except socket_error as err:
     print(socket_error)
     exit(-1)
-
-# print(f'local modification date: {datetime.fromtimestamp(os.path.getmtime("../screenshots/docker_1.png"))}')
-# mod_date, response = client.get_modification_date('/test/folder/screenshots/docker_1.png')  # get modification date
-# print(mod_date)
