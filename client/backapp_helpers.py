@@ -57,5 +57,3 @@ def user_set(config) -> None:
     print("\33[33mUsername not specified, please enter valid username\33[0m")
     config['username'] = str(get_input('Username: '))
     dump_config(config)
-
-##############################################################
