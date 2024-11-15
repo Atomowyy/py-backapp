@@ -58,14 +58,19 @@ def load_config() -> json:
     return json.load(open('config.json', 'r'))
 
 
-def user_check(config: json) -> bool:
-    username = config['username']
-    return username != ''
-
-
 def server_check(config: json) -> bool:
     server: str = config['server']
     return server != ''
+
+
+def port_check(config: json) -> bool:
+    port: str = config['port']
+    return port != ''
+
+
+def user_check(config: json) -> bool:
+    username = config['username']
+    return username != ''
 
 
 def dump_config(config):
@@ -74,13 +79,15 @@ def dump_config(config):
 
 
 def server_set(config) -> None:
-    print('\33[33mServer not specified, please enter valid server address and port number\33[0m')
+    print('\33[33mServer not specified, please enter valid server address\33[0m')
     config['server'] = str(get_input('Server address: '))
-    config['port'] = str(get_input('Server port: '))
-    dump_config(config)
+
+
+def port_set(config) -> None:
+    print('\33[33mServer port not specified, please enter valid port number\33[0m')
+    config['port'] = str(get_input('Port: '))
 
 
 def user_set(config) -> None:
     print("\33[33mUsername not specified, please enter valid username\33[0m")
     config['username'] = str(get_input('Username: '))
-    dump_config(config)

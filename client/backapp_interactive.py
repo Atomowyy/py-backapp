@@ -161,17 +161,31 @@ def case_spacer() -> None:
 
 def interactive_mode() -> None:
     config = load_config()
+    config_modified = False
 
+    # modifying config
     if not server_check(config):
         server_set(config)
+        config_modified = True
+    if not port_check(config):
+        port_set(config)
+        config_modified = True
     if not user_check(config):
         user_set(config)
+        config_modified = True
 
-    TcpClient.load_config()  # load config.json into TcpClient
+    # save config if needed
+    if config_modified:
+        dump_config(config)
 
+    # load config.json into TcpClient
+    TcpClient.load_config()
+
+    # initialize socket
     client = TcpClient()
-    server_response = client.verify_token()
 
+    # check token validity
+    server_response = client.verify_token()
     if server_response == -1:
         while server_response == -1:
             print("\33[33mAuthentication failure\33[0m")
