@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from tcp_server import TcpServer
 import os
 
