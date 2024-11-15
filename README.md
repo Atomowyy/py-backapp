@@ -16,10 +16,56 @@ Zadania:
 git clone https://github.com/Atomowyy/py-backapp && cd py-backapp
 ```
 
-## FIXME: Sending data from client to server
-```shell
+## Running Client
+> [!NOTE]
+> Change directory to `client`
+
+### Interactive mode
+Run with no arguments or with `-i` flag to start interactive mode
+```text
 python backapp.py
 ```
+```text
+python backapp.py -i
+```
+![image](https://github.com/user-attachments/assets/92ef0ac6-4e80-4ded-b98a-9b9b893bdddd)
+
+
+### CLI mode
+```text
+python backapp.py -h
+```
+```text
+usage: backapp.py [-h] [-i] [--username USERNAME] [--server SERVER] [--port PORT] [-g] [-v] [--local LOCAL]
+                  [--remote REMOTE] [-l] [-r] [-R] [-u] [-d] [-s] [-S]
+
+This is the client side of py-backapp, backup and synchronize your files with the server.If no argument is
+specified the program starts in interactive mode
+
+options:
+  -h, --help           show this help message and exit
+  -i, --interactive    start py-backapp in interactive mode
+  --username USERNAME  set username in config.json
+  --server SERVER      set server in config.json
+  --port PORT          set port in config.json
+  -g, --gettoken       authorize user on the server and get a token
+  -v, --verifytoken    verify if current token is valid
+  --local LOCAL        path to local resource
+  --remote REMOTE      path to remote resource
+  -l, --list           list contents of remote dir
+  -r, --remove         remove remote resources
+  -R, --removeall      remove all users' remote resources
+  -u, --upload         upload local resources to the server
+  -d, --download       download remote resources from the server
+  -s, --syncfile       compare local and remote file and get the newer one
+  -S, --syncdir        synchronize local directory with the remote one
+
+source code: https://github.com/Atomowyy/py-backapp
+```
+![image](https://github.com/user-attachments/assets/c9719a2a-24ab-4f2e-9063-4dba35679c30)
+![image](https://github.com/user-attachments/assets/7e783a12-7ba1-4af7-8830-496216be6d2a)
+
+
 
 ## Running Server
 > [!NOTE]
@@ -28,11 +74,17 @@ python backapp.py
 ```shell
 python server.py
 ```
+![image](https://github.com/user-attachments/assets/31a38b17-e7d7-4f80-aae7-264b2faeec30)
+
 
 ## Adding users to servers' database
+Users are stored in `server/users_db.json`
 ```shell
 python server/users_db_add_user.py
 ```
+![image](https://github.com/user-attachments/assets/3932d217-707d-42fd-9ec7-dd6e4b571568)
+![image](https://github.com/user-attachments/assets/42641cd9-3fdb-4932-a205-b8983e4f1f92)
+
 
 ## Self-signed SSL certificate with `openssl`
 Generate a 2048-bit RSA private key:
@@ -74,4 +126,7 @@ docker-compose -f docker-compose.yml up
 ```
 \
 \
-![docker example 1](/screenshots/docker_1.png)
+![image](https://github.com/user-attachments/assets/9085b9fa-8419-4f76-95ff-2bfdb8a34ccc)
+![image](https://github.com/user-attachments/assets/b947e931-93c7-452c-aef4-538d56734700)
+
+
