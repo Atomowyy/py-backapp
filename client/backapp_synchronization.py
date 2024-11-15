@@ -61,7 +61,7 @@ def synchronize_file_cli(local_path, remote_path, remote_ls_):
     remote_filename = os.path.basename(remote_path)
 
     if filename != remote_filename:
-        print('Local filename and remote filename do not match')
+        print('Local filename and remote filename names do not match')
         return
 
     local_mod_date = datetime.fromtimestamp(os.path.getmtime(local_path), UTC)
