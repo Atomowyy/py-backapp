@@ -78,9 +78,12 @@ python server.py
 
 
 ## Adding users to servers' database
-Users are stored in `server/users_db.json`
+> [!NOTE]
+> Change directory to `server`
+
+Users are stored in `users_db.json`
 ```shell
-python server/users_db_add_user.py
+python users_db_add_user.py
 ```
 ![image](https://github.com/user-attachments/assets/3932d217-707d-42fd-9ec7-dd6e4b571568)
 ![image](https://github.com/user-attachments/assets/42641cd9-3fdb-4932-a205-b8983e4f1f92)
@@ -104,6 +107,18 @@ Verify certificate and key:
 openssl x509 -in ./server/certificates/py-backapp-server.crt -noout -text
 openssl rsa -in ./server/certificates/py-backapp-server.key -noout -text
 ```
+\
+\
+Modify ceritficates in `server.py` or set the env variables
+```python
+# FIXME: use your certificates, default certificates are for development purposes only and shouldn't be used
+CERTFILE = os.getenv('CERTFILE', 'certificates/py-backapp-server.crt')
+KEYFILE = os.getenv('KEYFILE', 'certificates/py-backapp-server.key')
+```
+```shell
+export CERTFILE=certificates/py-backapp-server.crt
+export KEYFILE=certificates/py-backapp-server.key
+```
 
 ## Docker
 
@@ -117,7 +132,7 @@ docker container run -p 1234:1234 py-backapp:test
 ```
 ### Running bash in a server container
 ```shell
-docker container run --rm -it -p 1234:1234 py-backapp:test "/bin/bash"
+docker container run -it -p 1234:1234 py-backapp:test /bin/bash
 ```
 
 ### Running server with docker-compose
