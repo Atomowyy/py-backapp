@@ -117,6 +117,7 @@ class TcpServer:
         # secure client socket with ssl
         self.secure_socket = self.context.wrap_socket(client_socket, server_side=True)
         # print connection info
+        print(datetime.now(UTC), end=' ')
         print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {self.secure_socket.version()}')
 
         try:
