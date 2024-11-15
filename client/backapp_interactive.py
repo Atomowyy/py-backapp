@@ -12,8 +12,8 @@ from tcp_client import TcpClient
 
 # menu options
 menu = [
-    '1.Send files to the server',
-    '2.Send directories to the server',
+    '1.Upload files to the server',
+    '2.Upload directories to the server',
     '3.Download files/directories from the server',
     '4.List your uploaded files',
     '5.Synchronize file',
@@ -125,7 +125,7 @@ def handle_action(action_idx):
 
             remote_path = get_input('Remote directory path: [default: /]')
 
-            ls_, response = client.list_data(f'{remote_path}')
+            ls_, response = client.list_data(remote_path)
 
             if response == 'Invalid Path':
                 print('\33[33mSpecified remote file/directory was not found on the server\33[0m')
