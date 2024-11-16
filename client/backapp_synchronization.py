@@ -4,7 +4,7 @@ from tcp_client import TcpClient
 from backapp_helpers import get_input
 
 
-def synchronize_file(local_path, remote_path, remote_ls_):
+def synchronize_file(local_path, remote_path, remote_ls_) -> None:
     filename = os.path.basename(local_path)
     remote_filename = os.path.basename(remote_path)
 
@@ -56,7 +56,7 @@ def synchronize_file(local_path, remote_path, remote_ls_):
         print('\33[33mSpecified filename was not found on the server\33[0m')
 
 
-def synchronize_file_cli(local_path, remote_path, remote_ls_):
+def synchronize_file_cli(local_path, remote_path, remote_ls_) -> None:
     filename = os.path.basename(local_path)
     remote_filename = os.path.basename(remote_path)
 
@@ -104,7 +104,7 @@ def synchronize_file_cli(local_path, remote_path, remote_ls_):
         print('Specified filename was not found on the server')
 
 
-def synchronize_dir(local_path, remote_path, remote_ls_):
+def synchronize_dir(local_path, remote_path, remote_ls_) -> None:
     local_ls = os.listdir(local_path)
     remote_ls = remote_ls_.split('  ')
 
