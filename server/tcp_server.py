@@ -55,10 +55,6 @@ class TcpServer:
 
         self.server_socket = None
         self.context = None
-        self.secure_socket = None
-
-        self.current_user = None
-        self.current_user_data_dir = None
 
         self.users = json.load(open('users_db.json', 'r'))  # load users db
         self.access_tokens = dict()
@@ -114,35 +110,47 @@ class TcpServer:
         self.server_socket.close()
 
     def _handle_connection(self, client_socket: socket.socket, client_address: tuple[str, str]) -> None:
+        logs = ''  # initialize variable to store current connection logs
+
         # secure client socket with ssl
-        self.secure_socket = self.context.wrap_socket(client_socket, server_side=True)
-        # print connection info
-        print(datetime.now(UTC), end=' ')
-        print(f'Connected with {client_address[0]}:{client_address[1]}, TLS version: {self.secure_socket.version()}')
+        secure_client_socket = self.context.wrap_socket(client_socket, server_side=True)
+
+        # add connection info to logs
+        now = str(datetime.now(UTC)) + ' '
+        logs += now
+        logs += f'Client: {client_address[0]}:{client_address[1]}, TLS: {secure_client_socket.version()}'
 
         try:
             # receive authentication - 'GET TOKEN/AUTHENTICATE <> user <> pass/token'
-            auth = self.secure_socket.recv(self.tcp_buffer_size).decode()
-            auth_status = self._handle_authorisation_and_token_creation(auth)
+            auth = secure_client_socket.recv(self.tcp_buffer_size).decode()
+            auth_status, user = self._handle_authorisation_and_token_creation(secure_client_socket, auth)
 
             if auth_status == -1:
-                print(f'\tUser: {self.current_user}')
-                self._send_response('Access Denied')
+                logs += f'\n\tUser: {user}\n\t'
+                response = 'Access Denied'
+                logs += response
+                self._send_response(secure_client_socket, response)
                 return
             elif auth_status == 0:
-                print(f'\tUser: {self.current_user}, action: GET TOKEN')
-                self._send_response('Token Created Successfully')
+                logs += f'\n\tUser: {user}, action: GET TOKEN\n\t'
+                response = 'Token Created Successfully'
+                logs += response
+                self._send_response(secure_client_socket, response)
                 return
             elif auth_status == 1:
-                print(f'\tUser: {self.current_user}, action: VERIFY TOKEN')
-                self._send_response('Token Valid')
+                logs += f'\n\tUser: {user}, action: VERIFY TOKEN\n\t'
+                response = 'Token Valid'
+                logs += response
+                self._send_response(secure_client_socket, response)
                 return
             elif auth_status == 2:
-                print(f'\tUser: {self.current_user}, action: AUTHORIZE')
-                self._send_response('Access Granted', False)
+                logs += f'\n\tUser: {user}, action: AUTHORIZE\n\t'
+                response = 'Access Granted'
+                logs += response
+                self._send_response(secure_client_socket, response)
 
             # receive header from the client
-            header = self.secure_socket.recv(self.tcp_buffer_size).decode()
+            header = secure_client_socket.recv(self.tcp_buffer_size).decode()
 
             # unpack action and argument from header
             if self.spacer not in header:
@@ -155,36 +163,38 @@ class TcpServer:
             action, argument = tmp
             del tmp
 
-            print(f'\tUser: {self.current_user}, action: {action}, argument: {argument}')
+            logs += f'\n\tUser: {user}, action: {action}, argument: {argument}'
 
             if '..' in argument:  # moving outside data_dir
                 raise ValueError('".." not allowed in argument (path to resource)')
 
             # handle server action and store response for the client
-            response = self._handle_server_action(action, argument)
+            response = self._handle_server_action(secure_client_socket, action, argument, user)
+            logs += f'\n\t{response}'
 
             # send response to the client
-            self._send_response(response)
+            self._send_response(secure_client_socket, response)
         except ValueError as err:
-            print(f'\tValueError: {err}')
+            logs += f'\n\tValueError: {err}'
             try:
-                self._send_response('Invalid Request')
+                response = 'Invalid Request'
+                logs += f'\n\t{response}'
+                self._send_response(secure_client_socket, response)
             except socket.error as err2:
-                print(f"\tCouldn't send response, Socket error: {err2}")
+                logs += f"\n\tCouldn't send response, Socket error: {err2}"
 
         except socket.error as err:
-            print(f'\tSocket error: {err}')
+            logs += f'\n\tSocket error: {err}'
 
         finally:
-            self.secure_socket.close()
+            print(logs)
+            secure_client_socket.close()
 
-    def _handle_authorisation_and_token_creation(self, auth: str) -> int:
+    def _handle_authorisation_and_token_creation(self, secure_client_socket: socket, auth: str) -> tuple[int, str]:
         action, user, auth = auth.split(self.spacer)
 
         if user not in self.users:
-            return -1
-
-        self.current_user = user
+            return -1, user
 
         if action == 'GET TOKEN':
             # authenticate user
@@ -195,7 +205,7 @@ class TcpServer:
             ).decode()
 
             if sent_password != user_password:
-                return -1
+                return -1, user
 
             # remove old users' tokens
             self.access_tokens = {
@@ -209,40 +219,38 @@ class TcpServer:
             self.access_tokens[token] = token_metadata
 
             # send token to the client
-            self._send_response(token, False)
+            self._send_response(secure_client_socket, token)
 
-            return 0
+            return 0, user
 
         elif action == 'VERIFY TOKEN' or action == 'AUTHORIZE':
             provided_token = auth
 
             if provided_token not in self.access_tokens:
-                return -1
+                return -1, user
 
             # get token metadata
             token_metadata = self.access_tokens[provided_token]
 
             # check if token is for the right user
             if token_metadata['username'] != user:
-                return -1
+                return -1, user
 
             # check if token expired
             if datetime.now(UTC) > token_metadata['expiration']:
-                return -1
+                return -1, user
 
             if action == 'VERIFY TOKEN':
-                return 1
+                return 1, user
 
-            self.current_user_data_dir = self.data_dir + '/' + user  # each user gets their own data directory
-            return 2
+            return 2, user
 
-    def _send_response(self, response: str, print_response: bool = True) -> None:
+    @staticmethod
+    def _send_response(secure_client_socket: socket, response: str) -> None:
         response_str = str(response)
-        self.secure_socket.sendall(response_str.encode())
-        if print_response:
-            print('\t' + response_str)
+        secure_client_socket.sendall(response_str.encode())
 
-    def _handle_server_action(self, action: str, argument: str) -> str:
+    def _handle_server_action(self, secure_client_socket: socket, action: str, argument: str, user: str) -> str:
         if argument == '':
             path = '/'
         else:
@@ -251,25 +259,25 @@ class TcpServer:
         response = 'Action Accepted'  # default response
         match action:
             case 'STORE':
-                result = self._handle_storing(path)
+                result = self._handle_storing(secure_client_socket, path, user)
                 if result == -1:
                     response = 'Data Extraction Failed'
             case 'GET':
-                result = self._handle_retrieving(path)
+                result = self._handle_retrieving(secure_client_socket, path, user)
                 if result == -1:
                     response = 'Invalid Path'
                 if result == 1:
                     response = 'Data Archiving Failed'
             case 'GET MODIFICATION DATE':
-                result = self._handle_getting_modification_date(path)
+                result = self._handle_getting_modification_date(secure_client_socket, path, user)
                 if result == -1:
                     response = 'Invalid Path'
             case 'DELETE DATA':
-                result = self._handle_deleting(path)
+                result = self._handle_deleting(path, user)
                 if result == -1:
                     response = 'Invalid Path'
             case 'LIST DATA':
-                result = self._handle_listing(path)
+                result = self._handle_listing(secure_client_socket, path, user)
                 if result == -1:
                     response = 'Invalid Path'
             case _:
@@ -277,13 +285,13 @@ class TcpServer:
 
         return response
 
-    def _handle_storing(self, save_path: str) -> int:
-        full_save_path = self.current_user_data_dir + save_path
+    def _handle_storing(self, secure_client_socket: socket, save_path: str, user: str) -> int:
+        full_save_path = f'{self.data_dir}/{user}{save_path}'
 
         # create directories if they don't exist
         os.makedirs(full_save_path, exist_ok=True)
 
-        socket_file = self.secure_socket.makefile('rb')
+        socket_file = secure_client_socket.makefile('rb')
         try:
             with tarfile.open(fileobj=socket_file, mode='r|') as socket_tar:
                 socket_tar.extractall(full_save_path, filter='tar')
@@ -291,8 +299,9 @@ class TcpServer:
         except tarfile.TarError:
             return -1
 
-    def _send_tar(self, path: str) -> int:
-        socket_file = self.secure_socket.makefile('wb')
+    @staticmethod
+    def _send_tar(secure_client_socket: socket, path: str) -> int:
+        socket_file = secure_client_socket.makefile('wb')
         try:
             with tarfile.open(fileobj=socket_file, mode='w|') as socket_tar:
                 socket_tar.add(path, arcname=os.path.basename(path))
@@ -300,18 +309,18 @@ class TcpServer:
         except tarfile.TarError:
             return 1
 
-    def _handle_retrieving(self, path: str) -> int:
+    def _handle_retrieving(self, secure_client_socket: socket, path: str, user: str) -> int:
         # print(f'\tSending file/dir {path}')
-        full_path = self.current_user_data_dir + path
+        full_path = f'{self.data_dir}/{user}{path}'
 
         if not os.path.exists(full_path):
             return -1
 
-        return self._send_tar(full_path)
+        return self._send_tar(secure_client_socket, full_path)
 
-    def _handle_getting_modification_date(self, path: str) -> int:
+    def _handle_getting_modification_date(self, secure_client_socket: socket, path: str, user: str) -> int:
         # print(f'\tSending modification date of {path}')
-        full_path = self.current_user_data_dir + path
+        full_path = f'{self.data_dir}/{user}{path}'
 
         if not os.path.exists(full_path):
             return -1
@@ -321,15 +330,15 @@ class TcpServer:
 
         # convert it to string & human-readable format
         modification_date = str(datetime.fromtimestamp(modification_time, UTC))
-        print(f'\tModification date is {modification_date}')
+        # print(f'\tModification date is {modification_date}')
 
-        self._send_response(modification_date, False)
+        self._send_response(secure_client_socket, modification_date)
 
         return 0
 
-    def _handle_deleting(self, path: str) -> int:
+    def _handle_deleting(self, path: str, user: str) -> int:
         # print(f'\tDeleting data in {path}')
-        full_path = self.current_user_data_dir + path
+        full_path = f'{self.data_dir}/{user}{path}'
 
         if not os.path.exists(full_path):
             return -1
@@ -341,13 +350,13 @@ class TcpServer:
 
         return 0
 
-    def _handle_listing(self, path: str) -> int:
+    def _handle_listing(self, secure_client_socket: socket, path: str, user: str) -> int:
         # print(f'\tListing data in {path}')
-        full_path = self.current_user_data_dir + path
+        full_path = f'{self.data_dir}/{user}{path}'
 
         if not os.path.exists(full_path):
             return -1
 
         listing = '  '.join(os.listdir(full_path))
-        self._send_response(listing, False)
+        self._send_response(secure_client_socket, listing)
         return 0
