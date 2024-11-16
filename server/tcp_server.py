@@ -154,11 +154,11 @@ class TcpServer:
 
             # unpack action and argument from header
             if self.spacer not in header:
-                raise ValueError('Invalid header')
+                raise ValueError('Invalid Header')
 
             tmp = header.split(self.spacer)
             if len(tmp) != 2:
-                raise ValueError('Invalid header')
+                raise ValueError('Invalid Header')
 
             action, argument = tmp
             del tmp
