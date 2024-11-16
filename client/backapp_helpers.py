@@ -9,7 +9,7 @@ else:
 
 
 def get_key_unix() -> str:
-    """Read a single character from the keyboard."""
+    """Read a single character from the keyboard. (Unix)"""
     fd = sys.stdin.fileno()  # get file descriptor associated with file-like object (stdin, stdout, stderr)
     old_settings = termios.tcgetattr(fd)  # Get current terminal settings
 
@@ -27,6 +27,7 @@ def get_key_unix() -> str:
 
 
 def get_key_windows() -> bytes:
+    """Read a single character from the keyboard. (Windows)"""
     key = msvcrt.getch()
     if key == b'\x03':  # ctrl + c
         print('Exiting...')
@@ -48,7 +49,7 @@ def dir_exists(dir_path) -> bool:
     return True
 
 
-def get_input(message):
+def get_input(message) -> str:
     user_input = input(message + '\33[32m')
     print('\33[0m', end='')  # reset text coloring
     return user_input
