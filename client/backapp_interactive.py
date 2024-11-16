@@ -195,7 +195,7 @@ def interactive_mode() -> None:
 
     ##############################################
     #  user authenticated
-    print(f'\33[34mHello {TcpClient.username}\33[0m')
+    print(f"\33[34mHello {config['username']}\33[0m")
     wait_for_user_input()
 
     current_index = 0
