@@ -26,7 +26,7 @@ menu = [
 
 def get_arrow_key_unix() -> str:
     # arrow up -> \033[A
-    # arrow down -> \033[A
+    # arrow down -> \033[B
     key = get_key_unix()  # Read the first character
     if key == '\033':
         key += get_key_unix()  # '[' character
@@ -67,7 +67,7 @@ def wait_for_user_input() -> None:
     get_key_windows() if sys.platform == 'win32' else get_arrow_key_unix()
 
 
-def handle_action(action_idx):
+def handle_action(action_idx) -> None:
     client = TcpClient()
     client.send_auth_token()
 
