@@ -56,7 +56,10 @@ def get_input(message) -> str:
 
 
 def load_config() -> json:
-    return json.load(open('config.json', 'r'))
+    dirname = os.path.dirname(__file__)
+    path = os.path.join(dirname, 'config.json')
+    print(path)
+    return json.load(open(path, 'r'))
 
 
 def server_check(config: json) -> bool:

@@ -8,7 +8,7 @@ import os
 
 from datetime import datetime
 
-from backapp_helpers import get_key_unix, get_key_windows
+from backapp_helpers import get_key_unix, get_key_windows, load_config
 
 
 class TcpClient:
@@ -21,7 +21,7 @@ class TcpClient:
     @classmethod
     def load_config(cls) -> None:
         # load config from config.json
-        TcpClient.config = json.load(open('config.json', 'r'))
+        TcpClient.config = load_config()
 
         keys_to_check = {'server', 'port', 'username', 'token'}
         if not keys_to_check.issubset(TcpClient.config.keys()):
