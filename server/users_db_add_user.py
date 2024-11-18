@@ -53,7 +53,7 @@ def get_passwd_windows(prompt: str) -> str:
     return passwd
 
 
-users = json.load(open('users_db.json', 'r'))
+users = json.load(open(os.path.join(os.path.dirname(__file__), 'users_db.json'), 'r'))
 
 username = input('Username: ')
 if username in users:
@@ -81,7 +81,7 @@ password_dict = {
 users[username] = password_dict
 
 # dump dict as json into users_db.json
-with open('users_db.json', 'w') as user_db:
+with open(os.path.join(os.path.dirname(__file__), 'users_db.json'), 'w') as user_db:
     user_db.write(json.dumps(users, indent='\t'))
 
 print('\nUser added successfully')

@@ -14,10 +14,11 @@ import secrets
 
 from base64 import b64encode
 
+dir_name = os.path.dirname(__file__)
 
 class TcpServer:
-    project_path = os.path.abspath('./')
-    data_dir = project_path + '/data'
+    server_path = dir_name
+    data_dir = os.path.join(server_path, 'data')
 
     spacer = '<;;;>'
 
@@ -56,7 +57,7 @@ class TcpServer:
         self.server_socket = None
         self.context = None
 
-        self.users = json.load(open('users_db.json', 'r'))  # load users db
+        self.users = json.load(open(os.path.join(os.path.dirname(__file__), 'users_db.json'), 'r'))  # load users db
         self.access_tokens = dict()
 
     def run(self) -> None:

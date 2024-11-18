@@ -8,8 +8,8 @@ BACKLOG = int(os.getenv('BACKLOG', 0))
 TCP_BUFFER_SIZE = int(os.getenv('TCP_BUFFER_SIZE', 32_768))
 
 # FIXME: use your certificates, default certificates are for development purposes only and shouldn't be used
-CERTFILE = os.getenv('CERTFILE', 'certificates/py-backapp-development.crt')
-KEYFILE = os.getenv('KEYFILE', 'certificates/py-backapp-development.key')
+CERTFILE = os.getenv('CERTFILE', os.path.join(os.path.dirname(__file__), 'certificates/py-backapp-development.crt'))
+KEYFILE = os.getenv('KEYFILE', os.path.join(os.path.dirname(__file__), 'certificates/py-backapp-development.key'))
 
 # initialize server variable
 server = None
