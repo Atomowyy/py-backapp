@@ -7,6 +7,8 @@ if sys.platform == 'win32':
 else:
     import termios
 
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
+
 
 def get_key_unix() -> str:
     """Read a single character from the keyboard. (Unix)"""
@@ -56,10 +58,12 @@ def get_input(message) -> str:
 
 
 def load_config() -> json:
-    dirname = os.path.dirname(__file__)
-    path = os.path.join(dirname, 'config.json')
-    print(path)
-    return json.load(open(path, 'r'))
+    return json.load(open(CONFIG_PATH, 'r'))
+
+
+def dump_config(config):
+    with open(CONFIG_PATH, 'w') as cfg:
+        cfg.write(json.dumps(config, indent='\t'))
 
 
 def server_check(config: json) -> bool:
@@ -75,11 +79,6 @@ def port_check(config: json) -> bool:
 def user_check(config: json) -> bool:
     username = config['username']
     return username != ''
-
-
-def dump_config(config):
-    with open('config.json', 'w') as cfg:
-        cfg.write(json.dumps(config, indent='\t'))
 
 
 def server_set(config) -> None:

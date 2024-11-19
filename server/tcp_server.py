@@ -14,7 +14,9 @@ import secrets
 
 from base64 import b64encode
 
+
 dir_name = os.path.dirname(__file__)
+
 
 class TcpServer:
     server_path = dir_name
