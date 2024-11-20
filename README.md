@@ -1,15 +1,12 @@
 # Python Backup App
+Backup and synchronize your data with Py-BackApp
 
-## Projekt:
-Implementacja systemu do synchronizacji i backupu danych multimedialnych z wykorzystaniem protokołów sieciowych
+## Requirements
+> [!NOTE]
+> Project was tested on python `3.12.7`
 
-Zadania:
--	Badanie protokołów sieciowych do synchronizacji i backupu.
--	Zaprojektowanie architektury systemu.
--	Implementacja funkcji synchronizacji danych.
--	Implementacja funkcji backupu danych.
--	Testowanie systemu pod kątem niezawodności.
--	Opracowanie dokumentacji technicznej.
+Project uses only built-in python libraries, so the only requirement is [Python](https://www.python.org/downloads/)
+
 
 ## Cloning repo
 ```shell
