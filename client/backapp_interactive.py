@@ -95,7 +95,7 @@ def handle_action(action_idx) -> None:
             response = client.get(remote_path, local_path)
             print(response)
         case 3:  # listing data
-            user_path: str = get_input('Remote dir path [default: /]: ')
+            user_path: str = get_input('Remote directory path [default: /]: ')
             remote_path: str = '/' if user_path == '' else user_path
             ls, response = client.list_data(remote_path)
             print(ls)
@@ -123,7 +123,7 @@ def handle_action(action_idx) -> None:
                 client.close_connection()
                 return
 
-            remote_path = get_input('Remote directory path: [default: /]')
+            remote_path = get_input('Remote directory path [default: /]: ')
 
             ls_, response = client.list_data(remote_path)
 
